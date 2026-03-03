@@ -16,8 +16,11 @@ import type {
   UploadResponse,
 } from "@/lib/types";
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Empty string = relative URL → browser calls /api/... on the same host.
+// Next.js rewrites (next.config.ts) proxy those requests to the FastAPI backend.
+// Set NEXT_PUBLIC_API_URL only if you need to hit a backend on a different origin
+// (e.g. local dev without Docker, pointing at a remote staging server).
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export async function fetcher<T>(url: string): Promise<T> {
   const res = await fetch(`${BASE_URL}${url}`);
