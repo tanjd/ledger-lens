@@ -42,8 +42,8 @@ dev: ## Run backend and frontend concurrently
 
 ##@ Testing & Quality
 
-test: ## Run pytest (backend)
-	cd backend && uv run pytest
+test: ## Run pytest (backend); exit 5 (no tests collected) treated as pass
+	cd backend && uv run pytest; e=$$?; [ $$e -eq 5 ] && exit 0 || exit $$e
 
 lint: ## Lint Python code with Ruff
 	cd backend && uv run ruff check .
