@@ -1,0 +1,92 @@
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+default_language_version:
+  python: python3
+
+repos:
+  # Meta hooks – validate this config
+  - repo: meta
+    hooks:
+      - id: check-useless-excludes
+
+  # General pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-merge-conflict
+      - id: debug-statements
+        files: ^backend/
+      - id: detect-private-key
+      - id: check-builtin-literals
+        files: ^backend/
+      - id: check-case-conflict
+      - id: mixed-line-ending
+      - id: check-ast
+        files: ^backend/
+
+  # Modernize Python syntax (matches requires-python >=3.12)
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.16.0
+    hooks:
+      - id: pyupgrade
+        args: ["--py312-plus", "--keep-runtime-typing"]
+        files: ^backend/
+
+  # Ruff - linting and formatting (Python backend only)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        name: ruff (lint)
+        args:
+          - "--fix"
+          - "--exit-non-zero-on-fix"
+          - "--statistics"
+          - "--output-format=full"
+        files: ^backend/
+      - id: ruff-format
+        name: ruff (format)
+        files: ^backend/
+
+  # Pygrep – blanket noqa, no eval, no log.warn
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-check-blanket-noqa
+        files: ^backend/
+      - id: python-no-eval
+        files: ^backend/
+      - id: python-no-log-warn
+        files: ^backend/
+
+  # GHA workflow schema validation
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: "0.28.0"
+    hooks:
+      - id: check-github-workflows
+
+  # basedpyright - type checking (using backend venv)
+  - repo: local
+    hooks:
+      - id: basedpyright
+        name: basedpyright
+        entry: bash -c 'cd backend && source .venv/bin/activate && basedpyright'
+        language: system
+        types: [python]
+        files: ^backend/
+        pass_filenames: false
+
+  # Conventional commits validation
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: []

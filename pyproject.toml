@@ -1,0 +1,11 @@
+# Root-level pyproject.toml — only used by python-semantic-release.
+# Python project config lives in backend/pyproject.toml.
+
+[tool.semantic_release]
+version_toml = ["backend/pyproject.toml:project.version"]
+tag_format = "v{version}"
+commit_parser = "conventional_commits"
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
