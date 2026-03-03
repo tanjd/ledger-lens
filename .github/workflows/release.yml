@@ -134,3 +134,15 @@
 #             ${{ steps.meta.outputs.image }}-frontend:${{ steps.meta.outputs.version }}
 #           cache-from: type=local,src=/tmp/.buildx-cache
 #           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+
+name: Release & Push
+
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    name: Not yet configured
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Configure secrets to enable semantic-release and Docker Hub publishing."
