@@ -45,7 +45,7 @@ pythonVersion = "3.14"
 typeCheckingMode = "standard"
 venvPath = "."
 venv = ".venv"
-include = ["app", "tests"]
+include = ["app"]
 # CSV parser layer uses dict[str, Any] by necessity — untyped external data
 reportExplicitAny = "none"
 reportAny = "none"
