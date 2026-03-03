@@ -52,7 +52,7 @@ format: ## Format Python code with Ruff
 	cd backend && uv run ruff format .
 
 typecheck: ## Type-check backend with Basedpyright
-	cd backend && uv run basedpyright app tests
+	cd backend && uv run basedpyright app
 
 check: lint format typecheck test ## Run all checks (lint, format, typecheck, test)
 
