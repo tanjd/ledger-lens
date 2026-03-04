@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Upload, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
+import { Upload, AlertCircle, CheckCircle2, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,22 +19,73 @@ import { fmtUsd, fmtPct } from "@/lib/formatters";
 import { revalidateAll } from "@/hooks/useStatement";
 import { useYear } from "@/context/YearContext";
 
-type Step = "idle" | "previewing" | "preview" | "uploading" | "done";
+type FileStatus = "previewing" | "ready" | "importing" | "done" | "error";
+
+interface FileEntry {
+  file: File;
+  status: FileStatus;
+  preview?: PreviewResponse;
+  error?: string;
+}
+
+interface EntryRowProps {
+  entry: FileEntry;
+}
+
+function EntryRow({ entry }: EntryRowProps) {
+  const { file, status, preview, error } = entry;
+  return (
+    <div className="rounded-md border p-3 text-sm space-y-1">
+      <div className="flex items-center gap-2">
+        {(status === "previewing" || status === "importing") && (
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+        )}
+        {status === "ready" && (
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+        )}
+        {status === "done" && (
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+        )}
+        {status === "error" && (
+          <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+        )}
+        <span className="font-medium truncate">{file.name}</span>
+      </div>
+
+      {error && <p className="pl-6 text-xs text-destructive">{error}</p>}
+
+      {preview && status !== "error" && (
+        <div className="pl-6 space-y-0.5 text-xs text-muted-foreground">
+          {preview.already_imported && (
+            <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+              <RefreshCw className="h-3 w-3 shrink-0" />
+              {preview.year} already imported — will replace
+            </span>
+          )}
+          <span>
+            {preview.year} · {preview.period_end_label} · {fmtUsd(preview.nav_current)} ·{" "}
+            {fmtPct(preview.twr_pct)} TWR
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function UploadDialog() {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<Step>("idle");
-  const [preview, setPreview] = useState<PreviewResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const fileRef = useRef<File | null>(null);
+  const [entries, setEntries] = useState<FileEntry[]>([]);
+  const [importing, setImporting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { refreshYears } = useYear();
 
+  const updateEntry = useCallback((index: number, patch: Partial<FileEntry>) => {
+    setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, ...patch } : e)));
+  }, []);
+
   const reset = useCallback(() => {
-    setStep("idle");
-    setPreview(null);
-    setError(null);
-    fileRef.current = null;
+    setEntries([]);
+    setImporting(false);
     if (inputRef.current) inputRef.current.value = "";
   }, []);
 
@@ -48,44 +99,61 @@ export function UploadDialog() {
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      fileRef.current = file;
-      setError(null);
-      setStep("previewing");
-      try {
-        const data = await previewStatement(file);
-        setPreview(data);
-        setStep("preview");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Preview failed");
-        setStep("idle");
-      }
+      const files = Array.from(e.target.files ?? []);
+      if (files.length === 0) return;
+
+      setEntries(files.map((file) => ({ file, status: "previewing" })));
+
+      await Promise.all(
+        files.map(async (file, i) => {
+          try {
+            const preview = await previewStatement(file);
+            updateEntry(i, { status: "ready", preview });
+          } catch (err) {
+            updateEntry(i, {
+              status: "error",
+              error: err instanceof Error ? err.message : "Preview failed",
+            });
+          }
+        }),
+      );
     },
-    [],
+    [updateEntry],
   );
 
   const handleImport = useCallback(async () => {
-    if (!fileRef.current) return;
-    setStep("uploading");
-    setError(null);
-    try {
-      const result = await uploadStatement(fileRef.current);
-      setStep("done");
+    setImporting(true);
+    let imported = 0;
+
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].status !== "ready") continue;
+      updateEntry(i, { status: "importing" });
+      try {
+        const result = await uploadStatement(entries[i].file);
+        updateEntry(i, { status: "done" });
+        toast.success(
+          `Imported ${result.year} through ${result.period_end_label} for ${result.account_id}`,
+        );
+        imported++;
+      } catch (err) {
+        updateEntry(i, {
+          status: "error",
+          error: err instanceof Error ? err.message : "Import failed",
+        });
+      }
+    }
+
+    if (imported > 0) {
       revalidateAll();
       refreshYears();
-      toast.success(
-        `Imported ${result.year} through ${result.period_end_label} for ${result.account_id}`,
-      );
-      setTimeout(() => {
-        setOpen(false);
-        reset();
-      }, 1500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-      setStep("preview");
     }
-  }, [reset, refreshYears]);
+
+    setImporting(false);
+  }, [entries, updateEntry, refreshYears]);
+
+  const readyCount = entries.filter((e) => e.status === "ready").length;
+  const allSettled =
+    entries.length > 0 && entries.every((e) => e.status === "done" || e.status === "error");
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -96,102 +164,56 @@ export function UploadDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Import Statement</DialogTitle>
+          <DialogTitle>Import Statements</DialogTitle>
           <DialogDescription>
-            Upload an IBKR activity statement CSV — annual
+            Upload one or more IBKR activity statement CSV files — annual
             (e.g.&nbsp;U11111111_2025_2025.csv) or year-to-date
             (e.g.&nbsp;U11111111_20260101_20260302.csv).
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-3 py-2">
           {/* File picker */}
-          {(step === "idle" || step === "previewing") && (
-            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors hover:border-primary">
-              <Upload className="h-8 w-8 text-muted-foreground" />
-              <span className="text-sm font-medium">
-                {step === "previewing" ? "Parsing…" : "Click to select CSV"}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Format: AccountID_Year_Year.csv or AccountID_YYYYMMDD_YYYYMMDD.csv
-              </span>
-              <input
-                ref={inputRef}
-                type="file"
-                accept=".csv"
-                className="sr-only"
-                onChange={handleFileChange}
-                disabled={step === "previewing"}
-              />
-            </label>
-          )}
+          <label
+            className={`flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-4 transition-colors hover:border-primary ${importing ? "pointer-events-none opacity-50" : ""}`}
+          >
+            <Upload className="h-6 w-6 text-muted-foreground" />
+            <span className="text-sm font-medium">Click to select CSV files</span>
+            <span className="text-xs text-muted-foreground">
+              Multiple files supported — one per year
+            </span>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".csv"
+              multiple
+              className="sr-only"
+              onChange={handleFileChange}
+              disabled={importing}
+            />
+          </label>
 
-          {/* Error */}
-          {error && (
-            <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {error}
-            </div>
-          )}
-
-          {/* Preview */}
-          {(step === "preview" || step === "uploading") && preview && (
-            <div className="space-y-3">
-              {preview.already_imported && (
-                <div className="flex items-center gap-2 rounded-md border border-yellow-500/50 bg-yellow-50 p-2.5 text-sm text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
-                  <RefreshCw className="h-4 w-4 shrink-0" />
-                  {preview.year} already has data — re-importing will replace
-                  it with data through {preview.period_end_label}.
-                </div>
-              )}
-              <div className="rounded-md border p-3 text-sm">
-                <div className="mb-2 font-medium">{preview.account_name}</div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
-                  <span>Account</span>
-                  <span className="text-foreground">{preview.account_id}</span>
-                  <span>Period</span>
-                  <span className="text-foreground">{preview.period_end_label}</span>
-                  <span>Currency</span>
-                  <span className="text-foreground">{preview.base_currency}</span>
-                  <span>Portfolio NAV</span>
-                  <span className="text-foreground">
-                    {fmtUsd(preview.nav_current)}
-                  </span>
-                  <span>TWR</span>
-                  <span className="text-foreground">
-                    {fmtPct(preview.twr_pct)}
-                  </span>
-                  <span>Positions</span>
-                  <span className="text-foreground">{preview.position_count}</span>
-                  <span>Stock trades</span>
-                  <span className="text-foreground">{preview.trade_count}</span>
-                  <span>Deposits</span>
-                  <span className="text-foreground">{preview.deposit_count}</span>
-                  <span>Dividends</span>
-                  <span className="text-foreground">{preview.dividend_count}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Done */}
-          {step === "done" && (
-            <div className="flex items-center gap-2 text-sm text-green-600">
-              <CheckCircle2 className="h-4 w-4" />
-              Import complete!
+          {/* File list */}
+          {entries.length > 0 && (
+            <div className="max-h-64 space-y-2 overflow-y-auto">
+              {entries.map((entry, i) => (
+                <EntryRow key={i} entry={entry} />
+              ))}
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>
-            Cancel
+          <Button variant="ghost" onClick={() => setOpen(false)} disabled={importing}>
+            {allSettled ? "Close" : "Cancel"}
           </Button>
-          {(step === "preview" || step === "uploading") && (
-            <Button onClick={handleImport} disabled={step === "uploading"}>
-              {step === "uploading" ? "Importing…" : "Import"}
+          {readyCount > 0 && !allSettled && (
+            <Button onClick={handleImport} disabled={importing}>
+              {importing
+                ? "Importing…"
+                : `Import ${readyCount} file${readyCount !== 1 ? "s" : ""}`}
             </Button>
           )}
         </DialogFooter>
