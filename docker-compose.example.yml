@@ -13,11 +13,17 @@ services:
       - /mnt/tank/ledger-lens:/app/data
     environment:
       - LEDGER_DATA_DIR=/app/data
-      # Allow requests from your TrueNAS hostname/IP on port 3000.
-      # If you only access via the Next.js proxy you can leave this as-is.
+      # Comma-separated list of allowed origins for the backend API.
+      # For multiple origins: http://localhost:3000,http://nas.local:3000
       - LEDGER_CORS_ORIGINS=http://localhost:3000
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -29,7 +35,7 @@ services:
         max-file: "3"
 
   frontend:
-    image: tanjd/ledger-lens-frontend:latest
+    image: tanjd/ledger-lens:latest
     container_name: ledger-lens-frontend
     restart: unless-stopped
     ports:
@@ -42,7 +48,13 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode < 400 ? 0 : 1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode < 400 ? 0 : 1))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -52,11 +64,3 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-# Usage:
-# 1. Copy this file to docker-compose.yml
-# 2. Edit the backend volume path to your TrueNAS dataset (or ./data for local)
-# 3. Run: docker compose up -d
-# 4. Open: http://<truenas-ip>:3000
-# 5. View logs: docker compose logs -f
-# 6. Stop: docker compose down

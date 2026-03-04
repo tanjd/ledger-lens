@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import ClassVar
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,7 +13,6 @@ class Settings(BaseSettings):
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_prefix="LEDGER_",
         case_sensitive=False,
-        # Allow comma-separated strings for list fields
         env_parse_none_str="null",
     )
 
@@ -25,7 +25,16 @@ class Settings(BaseSettings):
     database_url: str = ""
 
     # CORS origins accepted by the FastAPI backend.
+    # Accepts a comma-separated string (e.g. http://localhost:3000,http://nas:3000)
+    # or a JSON array (e.g. ["http://localhost:3000"]).
     cors_origins: list[str] = ["http://localhost:3000"]
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: object) -> object:
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",")]
+        return v
 
     @property
     def db_url(self) -> str:
