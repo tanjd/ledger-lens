@@ -207,6 +207,8 @@ export interface CorporateActionItem {
 }
 
 export interface PnlSummary {
+  realized_st: number;
+  realized_lt: number;
   realized_total: number;
   unrealized_total: number;
   total: number;

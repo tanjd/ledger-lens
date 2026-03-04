@@ -5,14 +5,16 @@ import type {
   NavTimeseriesItem,
   PnlTimeseriesItem,
 } from "@/lib/types";
-import { fmtUsd, pnlColor } from "@/lib/formatters";
+import { fmtUsd, fmtSgd, pnlColor } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import type { DcaItem } from "@/lib/types";
 
 interface Props {
   navData: NavTimeseriesItem[];
   depositData: DepositTimeseriesItem[];
   dividendData: DividendTimeseriesItem[];
   pnlData: PnlTimeseriesItem[];
+  dcaData?: DcaItem[];
 }
 
 /** Compound annual TWR: ∏(1 + twr_i / 100) − 1, expressed as % */
@@ -26,6 +28,7 @@ export function AllTimeSummaryCards({
   depositData,
   dividendData,
   pnlData,
+  dcaData,
 }: Props) {
   const latestNav = navData.at(-1)?.nav_current ?? 0;
   const cumulativeTwr = computeCumulativeTwr(navData);
@@ -37,11 +40,22 @@ export function AllTimeSummaryCards({
   const latestUnrealized = pnlData.at(-1)?.unrealized ?? 0;
   const latestYear = navData.at(-1)?.year;
 
+  // SGD deposit total comes from DCA data (native SGD amounts).
+  // Rate = total SGD deposited / total USD equivalent of deposits.
+  // totalDeposits is the USD-denominated cumulative deposit total from the deposits timeseries,
+  // which already reflects the real USD equivalent of every SGD->USD conversion.
+  const totalSgdDeposits = (dcaData ?? []).reduce((s, d) => s + d.sgd, 0);
+  const impliedRate = totalDeposits > 0 && totalSgdDeposits > 0
+    ? totalSgdDeposits / totalDeposits
+    : null;
+
   const cards = [
     {
       title: "Current Portfolio Value",
       value: fmtUsd(latestNav),
-      subtitle: `Across ${yearCount} year${yearCount !== 1 ? "s" : ""}`,
+      subtitle: impliedRate
+        ? `≈ ${fmtSgd(latestNav * impliedRate)} · ${yearCount}yr`
+        : `Across ${yearCount} year${yearCount !== 1 ? "s" : ""}`,
       valueClass: "",
     },
     {
@@ -53,7 +67,7 @@ export function AllTimeSummaryCards({
     {
       title: "Total Deposits",
       value: fmtUsd(totalDeposits),
-      subtitle: "Cumulative USD equivalent",
+      subtitle: totalSgdDeposits > 0 ? `${fmtSgd(totalSgdDeposits)} SGD` : "Cumulative USD",
       valueClass: "",
     },
     {

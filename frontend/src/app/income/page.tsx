@@ -53,6 +53,17 @@ export default function IncomePage() {
   );
   const yieldRows = data ? buildYieldRows(data.dividends, costBasisMap) : [];
 
+  // Forward dividend estimate: sum per-share dividend rates per symbol this year,
+  // then multiply by current holdings quantity to project next year's income.
+  const dpsBySymbol = (data?.dividends ?? []).reduce<Record<string, number>>(
+    (acc, d) => ({ ...acc, [d.symbol]: (acc[d.symbol] ?? 0) + d.per_share_rate }),
+    {},
+  );
+  const forwardEstimate = (holdingsData?.positions ?? []).reduce(
+    (sum, h) => sum + (dpsBySymbol[h.symbol] ?? 0) * h.quantity,
+    0,
+  );
+
   return (
     <div className="space-y-6">
       {/* ── All-time income summary ───────────────────────────────────────── */}
@@ -120,6 +131,14 @@ export default function IncomePage() {
           ) : (
             <>
               <IncomeSummaryCards summary={data.summary} />
+              <div className="mt-4">
+                <KpiCard
+                  title="Forward Dividend Estimate"
+                  value={fmtUsd(forwardEstimate)}
+                  subtitle={`Based on ${selectedYear} per-share rates × current holdings`}
+                  valueClass={pnlColor(forwardEstimate > 0 ? 1 : 0)}
+                />
+              </div>
               <Tabs defaultValue="dividends">
                 <TabsList>
                   <TabsTrigger value="dividends">

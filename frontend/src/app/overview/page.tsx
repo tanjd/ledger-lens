@@ -3,14 +3,17 @@
 import { useYear } from "@/context/YearContext";
 import {
   useOverview,
+  useHoldings,
   useNavTimeseries,
   useDepositTimeseries,
   useDividendTimeseries,
   usePnlTimeseries,
+  useDcaTimeseries,
 } from "@/hooks/useStatement";
 import { AllTimeSummaryCards } from "@/components/overview/AllTimeSummaryCards";
 import { YearSummaryTable } from "@/components/overview/YearSummaryTable";
 import { NavVsInvestedChart } from "@/components/overview/NavVsInvestedChart";
+import { PortfolioAllocationChart } from "@/components/holdings/PortfolioAllocationChart";
 import { KpiCard } from "@/components/overview/KpiCard";
 import { AssetAllocationChart } from "@/components/overview/AssetAllocationChart";
 import { ChangeInNavTable } from "@/components/overview/ChangeInNavTable";
@@ -26,6 +29,10 @@ export default function OverviewPage() {
   const { data: depositData, isLoading: depositLoading } = useDepositTimeseries();
   const { data: dividendData, isLoading: dividendLoading } = useDividendTimeseries();
   const { data: pnlData, isLoading: pnlLoading } = usePnlTimeseries();
+  const { data: dcaData } = useDcaTimeseries();
+  // Latest year's holdings for the current portfolio snapshot
+  const latestYear = navData?.at(-1)?.year ?? null;
+  const { data: latestHoldings } = useHoldings(latestYear);
   // Selected-year detail
   const { data: yearData, isLoading: yearLoading } = useOverview(selectedYear);
 
@@ -63,6 +70,7 @@ export default function OverviewPage() {
             depositData={depositData}
             dividendData={dividendData}
             pnlData={pnlData}
+            dcaData={dcaData}
           />
         )}
       </div>
@@ -84,6 +92,19 @@ export default function OverviewPage() {
       {/* NAV vs Total Invested — only rendered when there is timeseries data */}
       {!timeseriesLoading && navData && depositData && navData.length > 0 && (
         <NavVsInvestedChart navData={navData} depositData={depositData} />
+      )}
+
+      {/* ── Current portfolio snapshot ───────────────────────────── */}
+      {latestHoldings && latestHoldings.positions.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            Current Portfolio ({latestYear})
+          </h2>
+          <PortfolioAllocationChart
+            positions={latestHoldings.positions}
+            title="Holdings by Market Value"
+          />
+        </div>
       )}
 
       {/* ── Selected-year detail ──────────────────────────────────── */}

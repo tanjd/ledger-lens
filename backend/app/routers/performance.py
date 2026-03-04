@@ -36,6 +36,8 @@ def get_performance(
         .order_by(CorporateAction.action_date)  # type: ignore
     ).all()
 
+    realized_st = sum(r.realized_st_profit + r.realized_st_loss for r in pnl_records)
+    realized_lt = sum(r.realized_lt_profit + r.realized_lt_loss for r in pnl_records)
     realized_total = sum(r.realized_total for r in pnl_records)
     unrealized_total = sum(r.unrealized_total for r in pnl_records)
 
@@ -60,6 +62,8 @@ def get_performance(
             for r in pnl_records
         ],
         summary=PnlSummary(
+            realized_st=realized_st,
+            realized_lt=realized_lt,
             realized_total=realized_total,
             unrealized_total=unrealized_total,
             total=realized_total + unrealized_total,

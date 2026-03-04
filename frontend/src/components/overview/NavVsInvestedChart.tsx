@@ -22,10 +22,10 @@ interface Props {
 export function NavVsInvestedChart({ navData, depositData }: Props) {
   const depositMap = new Map(depositData.map((d) => [d.year, d.cumulative_deposits]));
 
-  const chartData = navData.map((d) => ({
-    year: d.year.toString(),
-    "Portfolio NAV": d.nav_current,
-    "Total Invested": depositMap.get(d.year) ?? 0,
+  const chartData = navData.map((nav) => ({
+    year: String(nav.year),
+    "Portfolio NAV": nav.nav_current,
+    "Total Invested": depositMap.get(nav.year) ?? 0,
   }));
 
   return (

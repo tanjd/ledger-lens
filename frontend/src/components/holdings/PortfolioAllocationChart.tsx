@@ -18,9 +18,10 @@ const COLORS = [
 
 interface Props {
   positions: PositionItem[];
+  title?: string;
 }
 
-export function PortfolioAllocationChart({ positions }: Props) {
+export function PortfolioAllocationChart({ positions, title = "Portfolio Allocation" }: Props) {
   const data = [...positions]
     .filter((p) => p.current_value > 0)
     .sort((a, b) => b.current_value - a.current_value)
@@ -34,7 +35,7 @@ export function PortfolioAllocationChart({ positions }: Props) {
     <Card className="flex flex-col">
       <CardHeader className="pb-1">
         <CardTitle className="text-sm font-medium text-muted-foreground">
-          Portfolio Allocation
+          {title}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col items-center gap-4 md:flex-row">

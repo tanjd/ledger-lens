@@ -225,6 +225,8 @@ class CorporateActionItem(_Base):
 
 
 class PnlSummary(_Base):
+    realized_st: float
+    realized_lt: float
     realized_total: float
     unrealized_total: float
     total: float

@@ -27,7 +27,8 @@ export function PnlTable({ records, summary }: Props) {
           <TableRow>
             <TableHead>Symbol</TableHead>
             <TableHead>Category</TableHead>
-            <TableHead className="text-right">Realized</TableHead>
+            <TableHead className="text-right">ST Realized</TableHead>
+            <TableHead className="text-right">LT Realized</TableHead>
             <TableHead className="text-right">Unrealized</TableHead>
             <TableHead className="text-right">Total</TableHead>
           </TableRow>
@@ -37,8 +38,11 @@ export function PnlTable({ records, summary }: Props) {
             <TableRow key={r.symbol}>
               <TableCell className="font-medium">{r.symbol}</TableCell>
               <TableCell className="text-muted-foreground">{r.asset_category}</TableCell>
-              <TableCell className={cn("text-right font-mono", pnlColor(r.realized_total))}>
-                {fmtUsd(r.realized_total)}
+              <TableCell className={cn("text-right font-mono", pnlColor(r.realized_st_profit + r.realized_st_loss))}>
+                {fmtUsd(r.realized_st_profit + r.realized_st_loss)}
+              </TableCell>
+              <TableCell className={cn("text-right font-mono", pnlColor(r.realized_lt_profit + r.realized_lt_loss))}>
+                {fmtUsd(r.realized_lt_profit + r.realized_lt_loss)}
               </TableCell>
               <TableCell className={cn("text-right font-mono", pnlColor(r.unrealized_total))}>
                 {fmtUsd(r.unrealized_total)}
@@ -52,8 +56,13 @@ export function PnlTable({ records, summary }: Props) {
       </Table>
       <div className="flex justify-end gap-8 border-t px-4 py-3 text-sm font-semibold">
         <span>
-          Realized: <span className={cn("ml-1 font-mono", pnlColor(summary.realized_total))}>
-            {fmtUsd(summary.realized_total)}
+          ST Realized: <span className={cn("ml-1 font-mono", pnlColor(summary.realized_st))}>
+            {fmtUsd(summary.realized_st)}
+          </span>
+        </span>
+        <span>
+          LT Realized: <span className={cn("ml-1 font-mono", pnlColor(summary.realized_lt))}>
+            {fmtUsd(summary.realized_lt)}
           </span>
         </span>
         <span>

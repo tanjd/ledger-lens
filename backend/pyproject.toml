@@ -1,6 +1,6 @@
 [project]
 name = "ledger-lens-backend"
-version = "0.1.0"
+version = "0.0.0"
 description = "Ledger Lens — IBKR portfolio analysis backend"
 requires-python = ">=3.14"
 dependencies = [
@@ -35,7 +35,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
-ignore = ["B008"]  # FastAPI Depends() in default args is intentional
+ignore = ["B008"]                   # FastAPI Depends() in default args is intentional
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]
@@ -49,6 +49,13 @@ include = ["app"]
 # CSV parser layer uses dict[str, Any] by necessity — untyped external data
 reportExplicitAny = "none"
 reportAny = "none"
+# Suppress warnings for external library type stubs and mocks
+reportUnknownMemberType = false
+reportUnknownParameterType = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportMissingParameterType = false
+reportPrivateUsage = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
