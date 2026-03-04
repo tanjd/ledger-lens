@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.2 (2026-03-04)
+
+### Bug Fixes
+
+- Replace Next.js rewrites with runtime proxy route handler and fix CORS env parsing
+  ([`d329ccd`](https://github.com/tanjd/ledger-lens/commit/d329ccddfb8f4013dd017708d2e7a7731bf8a014))
+
+
 ## v1.0.1 (2026-03-04)
 
 ### Bug Fixes
