@@ -1,6 +1,6 @@
 [project]
 name = "ledger-lens-backend"
-version = "1.0.2"
+version = "1.1.0"
 description = "Ledger Lens — IBKR portfolio analysis backend"
 requires-python = ">=3.14"
 dependencies = [
