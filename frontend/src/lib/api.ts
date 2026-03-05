@@ -14,6 +14,7 @@ import type {
   PreviewResponse,
   TradesResponse,
   UploadResponse,
+  VersionResponse,
 } from "@/lib/types";
 
 // Empty string = relative URL → browser calls /api/... on the same host.
@@ -62,6 +63,8 @@ export function getPerformanceUrl(year: number) {
 // ---------------------------------------------------------------------------
 // Timeseries endpoints
 // ---------------------------------------------------------------------------
+
+export const VERSION_URL = "/api/version";
 
 export const TIMESERIES_URLS = {
   nav: "/api/timeseries/nav",
@@ -124,4 +127,5 @@ export {
   type PnlTimeseriesItem,
   type PositionTimeseriesItem,
   type TradesResponse,
+  type VersionResponse,
 };

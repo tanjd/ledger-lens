@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useBackendVersion } from "@/hooks/useStatement";
 import {
   BarChart3,
   BookOpen,
@@ -25,6 +26,8 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: backendVersion } = useBackendVersion();
+  const frontendVersion = process.env.NEXT_PUBLIC_VERSION ?? "dev";
 
   return (
     <aside className="flex h-full w-56 flex-col border-r bg-sidebar">
@@ -53,8 +56,13 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="border-t p-3">
+      <div className="border-t p-3 space-y-0.5">
         <p className="text-xs text-muted-foreground">IBKR Portfolio Dashboard</p>
+        <p className="text-xs text-muted-foreground/60">
+          <span>ui v{frontendVersion}</span>
+          <span className="mx-1">&middot;</span>
+          <span>api v{backendVersion?.version ?? "–"}</span>
+        </p>
       </div>
     </aside>
   );

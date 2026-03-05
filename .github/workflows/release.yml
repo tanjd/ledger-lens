@@ -59,6 +59,29 @@ jobs:
           changelog: true
           vcs_release: true
 
+      - name: Sync frontend version
+        if: steps.release.outputs.released == 'true'
+        env:
+          SSH_PRIVATE_SIGNING_KEY: ${{ secrets.SSH_PRIVATE_SIGNING_KEY }}
+        run: |
+          VERSION="${{ steps.release.outputs.tag }}"
+          VERSION="${VERSION#v}"
+          cd frontend && npm version --no-git-tag-version "$VERSION" && cd ..
+          git add frontend/package.json
+
+          # Set up SSH commit signing with the same key used by semantic-release
+          KEY_FILE=$(mktemp)
+          printf '%s\n' "$SSH_PRIVATE_SIGNING_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          git config gpg.format ssh
+          git config user.signingkey "$KEY_FILE"
+          git config user.name "tanjd"
+          git config user.email "42729752+tanjd@users.noreply.github.com"
+
+          git commit -S -m "chore: sync frontend version to $VERSION [skip ci]"
+          git push
+          rm -f "$KEY_FILE"
+
     outputs:
       released: ${{ steps.release.outputs.released }}
       tag: ${{ steps.release.outputs.tag }}

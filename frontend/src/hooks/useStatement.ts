@@ -10,6 +10,7 @@ import {
   getPerformanceUrl,
   getTradesUrl,
   TIMESERIES_URLS,
+  VERSION_URL,
 } from "@/lib/api";
 import type {
   CashflowsResponse,
@@ -25,6 +26,7 @@ import type {
   PnlTimeseriesItem,
   PositionTimeseriesItem,
   TradesResponse,
+  VersionResponse,
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -97,6 +99,14 @@ export function useCommissionTimeseries() {
   return useSWR<CommissionTimeseriesItem[]>(TIMESERIES_URLS.commissions, fetcher);
 }
 
+
+// ---------------------------------------------------------------------------
+// App version
+// ---------------------------------------------------------------------------
+
+export function useBackendVersion() {
+  return useSWR<VersionResponse>(VERSION_URL, fetcher);
+}
 
 // ---------------------------------------------------------------------------
 // Global revalidation after upload

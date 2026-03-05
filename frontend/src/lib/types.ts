@@ -301,3 +301,11 @@ export interface UploadResponse {
   period_end_label: string;
   account_id: string;
 }
+
+// ---------------------------------------------------------------------------
+// Version
+// ---------------------------------------------------------------------------
+
+export interface VersionResponse {
+  version: string;
+}

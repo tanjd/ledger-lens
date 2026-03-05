@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,6 +27,11 @@ from app.services.watcher import ingest_existing, start_watcher
 
 logging.basicConfig(level=logging.INFO)
 
+try:
+    _VERSION = _pkg_version("ledger-lens-backend")
+except PackageNotFoundError:
+    _VERSION = "dev"
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
@@ -37,7 +44,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     observer.join()
 
 
-app = FastAPI(title="Ledger Lens", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Ledger Lens", version=_VERSION, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -60,3 +67,8 @@ app.include_router(timeseries.router, prefix="/api")
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/version")
+def get_version() -> dict[str, str]:
+    return {"version": _VERSION}
