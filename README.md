@@ -2,6 +2,8 @@
 
 Personal portfolio analysis dashboard for Interactive Brokers (IBKR) annual activity statement CSV files. Upload one CSV per year and get a multi-year view of your portfolio's NAV, P&L, dividends, trades, and cash flows.
 
+The sidebar footer displays the current frontend and backend versions, fetched live from `GET /api/version`.
+
 ## Features
 
 - **Overview** — NAV history, time-weighted return, asset allocation, year-over-year summary
