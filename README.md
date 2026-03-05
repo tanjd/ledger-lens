@@ -1,8 +1,9 @@
 # Ledger Lens
 
-Personal portfolio analysis dashboard for Interactive Brokers (IBKR) annual activity statement CSV files. Upload one CSV per year and get a multi-year view of your portfolio's NAV, P&L, dividends, trades, and cash flows.
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[![Dev Containers](https://img.shields.io/badge/Dev%20Containers-open-blue?logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/tanjd/ledger-lens)
 
-The sidebar footer displays the current frontend and backend versions, fetched live from `GET /api/version`.
+Personal portfolio analysis dashboard for Interactive Brokers (IBKR) annual activity statement CSV files. Upload one CSV per year and get a multi-year view of your portfolio's NAV, P&L, dividends, trades, and cash flows.
 
 ## Features
 
@@ -36,6 +37,20 @@ docker compose up
 ```
 
 Open [http://localhost:3000](http://localhost:3000), then upload your IBKR CSV via the upload button.
+
+### Dev Container (recommended for development)
+
+The repo ships with a fully configured Dev Container. Open it in VS Code or GitHub Codespaces and everything is set up automatically — Python 3.14 + uv, Node.js, pre-commit hooks, Docker-in-Docker, and all VS Code extensions.
+
+**VS Code:**
+
+1. Install the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension
+2. Clone the repo and open it in VS Code
+3. When prompted, click **Reopen in Container** (or run `Dev Containers: Reopen in Container` from the command palette)
+4. Wait for `make setup` to complete — deps and hooks are installed automatically
+5. Run `make dev` to start the backend and frontend
+
+**GitHub Codespaces:** click **Code → Codespaces → Create codespace on main**.
 
 ### Local Development
 
