@@ -1,15 +1,18 @@
 # Ledger Lens — Claude Context
 
 ## Project Overview
+
 Personal portfolio analysis dashboard for Interactive Brokers (IBKR) annual activity statement CSV files. Ingests one CSV per year, persists data, and surfaces multi-year time series insights.
 
 ## Architecture
-- **Backend**: Python 3.13 + FastAPI + SQLModel (SQLite) — in `backend/`
+
+- **Backend**: Python 3.14 + FastAPI + SQLModel (SQLite) — in `backend/`
 - **Frontend**: Next.js (App Router) + Tailwind CSS + shadcn/ui + Recharts — in `frontend/`
 - **Data**: `data/` directory — watched for new CSV files, also holds `ledger_lens.db`
 - **Docker**: `Dockerfile` (backend) + `Dockerfile.frontend` + `docker-compose.yml`
 
 ## Key Directories
+
 ```
 ledger-lens/
 ├── backend/
@@ -41,12 +44,16 @@ ledger-lens/
 ```
 
 ## IBKR CSV Format (Critical)
+
 NOT a flat CSV — embeds ~15 named tables. Format:
+
 ```
 SectionName,Header,col1,col2,...
 SectionName,Data,val1,val2,...
 ```
+
 Parsing gotchas:
+
 - Quoted comma-numbers: `"3,154.99"` → strip quotes, remove comma, cast float
 - Quoted datetimes: `"2025-01-02, 11:22:01"` → `strptime(..., "%Y-%m-%d, %H:%M:%S")`
 - `--` = N/A sentinel → `None`
@@ -55,6 +62,7 @@ Parsing gotchas:
 - `CSSPXz` = alias for `CSPX` — normalized via `Financial Instrument Information` section
 
 ## API Endpoints
+
 - `POST /api/upload` — upload new CSV, triggers ingest
 - `GET /api/years` — list all ingested years
 - `GET /api/overview?year=N` — NAV, TWR, asset allocation
@@ -66,6 +74,7 @@ Parsing gotchas:
 - `GET /api/timeseries/*` — multi-year aggregates
 
 ## Dashboard Tabs
+
 1. **Overview** — NAV, TWR, asset allocation donut
 2. **Holdings** — sortable open positions table
 3. **Trades** — stock/forex dual-tab with code badges
@@ -75,6 +84,7 @@ Parsing gotchas:
 7. **Trends** — multi-year portfolio growth, dividend growth, DCA pattern
 
 ## Dev Commands
+
 ```bash
 make setup          # install backend + frontend deps + pre-commit hooks
 make dev            # run backend (:8000) + frontend (:3000) concurrently
@@ -86,18 +96,21 @@ make docker-build   # build both Docker images
 ```
 
 ## Tech Stack
+
 - **Backend**: `uv`, `fastapi`, `uvicorn`, `sqlmodel`, `pydantic-settings`, `watchdog`, `python-multipart`
 - **Frontend**: Next.js 15, React 19, Tailwind CSS, shadcn/ui (New York style, Zinc), Recharts, SWR, Sonner
 - **Dev tools**: Ruff (lint+format), basedpyright (typecheck), pytest, pre-commit, conventional commits
 - **CI/CD**: GitHub Actions → semantic-release → Docker Hub push
 
 ## Code Style
+
 - Python: Ruff with `line-length = 100`, target `py312`
 - TypeScript: Prettier (via shadcn/ui defaults)
 - Commits: Conventional Commits (enforced by pre-commit hook)
 - Python type checking: basedpyright in `standard` mode
 
 ## Data Ingestion Flow
+
 1. CSV dropped in `data/` (or uploaded via UI)
 2. `watcher.py` (watchdog) detects file → calls `ingestor.py`
 3. `ingestor.py` calls `parser/base.py` → section parsers → upserts to SQLite
