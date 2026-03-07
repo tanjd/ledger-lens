@@ -13,6 +13,7 @@ import {
   getTimeseriesUrl,
   getTradesUrl,
   TIMESERIES_URLS,
+  UPLOAD_HISTORY_URL,
   VERSION_URL,
 } from "@/lib/api";
 import type {
@@ -30,6 +31,7 @@ import type {
   PnlTimeseriesItem,
   PositionTimeseriesItem,
   TradesResponse,
+  UploadLogItem,
   VersionResponse,
 } from "@/lib/types";
 
@@ -118,6 +120,10 @@ export function useBrokers() {
 
 export function useBrokerInfo() {
   return useSWR<BrokerInfo[]>(BROKER_INFO_URL, fetcher);
+}
+
+export function useUploadHistory() {
+  return useSWR<UploadLogItem[]>(UPLOAD_HISTORY_URL, fetcher);
 }
 
 // ---------------------------------------------------------------------------

@@ -18,7 +18,7 @@ from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
 
 from app.database import engine
-from app.services.ingestor import ingest_file
+from app.services.ingestor import ingest_file, write_upload_log
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +55,51 @@ class _CsvHandler(FileSystemEventHandler):
             self._timers.pop(filepath, None)
 
         logger.info("Watcher detected change: %s", filepath)
+        filename = Path(filepath).name
         try:
             with Session(engine) as session:
-                ingest_file(filepath, session)
-        except Exception:
+                statement, counts = ingest_file(filepath, session)
+                write_upload_log(
+                    session,
+                    filename=filename,
+                    broker=statement.broker,
+                    account_id=statement.account_id,
+                    account_name=statement.account_name,
+                    year=statement.year,
+                    period_end=statement.period_end,
+                    nav_current=statement.nav_current,
+                    twr_pct=statement.twr_pct,
+                    position_count=counts.position_count,
+                    trade_count=counts.trade_count,
+                    deposit_count=counts.deposit_count,
+                    dividend_count=counts.dividend_count,
+                    source="watcher",
+                    status="success",
+                )
+        except Exception as exc:
             logger.exception("Watcher failed to ingest %s", filepath)
+            try:
+                with Session(engine) as session:
+                    write_upload_log(
+                        session,
+                        filename=filename,
+                        broker="unknown",
+                        account_id="",
+                        account_name="",
+                        year=0,
+                        period_end=None,
+                        nav_current=0.0,
+                        twr_pct=0.0,
+                        position_count=0,
+                        trade_count=0,
+                        deposit_count=0,
+                        dividend_count=0,
+                        source="watcher",
+                        status="error",
+                        error_msg=str(exc),
+                    )
+            except Exception:
+                logger.exception("Failed to write error upload log for %s", filepath)
 
 
 def start_watcher(data_dir: str) -> BaseObserver:
@@ -76,8 +116,48 @@ def ingest_existing(data_dir: str) -> None:
 
     for csv_file in Path(data_dir).glob("**/*.csv"):
         logger.info("Startup ingest: %s", csv_file)
+        filename = csv_file.name
         try:
             with Session(engine) as session:
-                ingest_file(str(csv_file), session)
-        except Exception:
+                statement, counts = ingest_file(str(csv_file), session)
+                write_upload_log(
+                    session,
+                    filename=filename,
+                    broker=statement.broker,
+                    account_id=statement.account_id,
+                    account_name=statement.account_name,
+                    year=statement.year,
+                    period_end=statement.period_end,
+                    nav_current=statement.nav_current,
+                    twr_pct=statement.twr_pct,
+                    position_count=counts.position_count,
+                    trade_count=counts.trade_count,
+                    deposit_count=counts.deposit_count,
+                    dividend_count=counts.dividend_count,
+                    source="watcher",
+                    status="success",
+                )
+        except Exception as exc:
             logger.exception("Startup ingest failed for %s", csv_file)
+            try:
+                with Session(engine) as session:
+                    write_upload_log(
+                        session,
+                        filename=filename,
+                        broker="unknown",
+                        account_id="",
+                        account_name="",
+                        year=0,
+                        period_end=None,
+                        nav_current=0.0,
+                        twr_pct=0.0,
+                        position_count=0,
+                        trade_count=0,
+                        deposit_count=0,
+                        dividend_count=0,
+                        source="watcher",
+                        status="error",
+                        error_msg=str(exc),
+                    )
+            except Exception:
+                logger.exception("Failed to write error upload log for %s", csv_file)

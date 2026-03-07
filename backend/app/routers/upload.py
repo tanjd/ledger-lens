@@ -11,12 +11,12 @@ import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.config import settings
 from app.database import get_session
-from app.models.api import PreviewResponse, UploadResponse
-from app.models.db import Statement
+from app.models.api import PreviewResponse, UploadLogItem, UploadResponse
+from app.models.db import Statement, UploadLog
 from app.parser.base import parse_ibkr_csv
 from app.parser.moomoo import (
     extract_moomoo_account_id,
@@ -31,7 +31,7 @@ from app.parser.sections.nav import parse_nav
 from app.parser.sections.positions import parse_positions
 from app.parser.sections.statement import parse_statement_meta
 from app.parser.sections.trades import parse_trades
-from app.services.ingestor import detect_broker, ingest_file
+from app.services.ingestor import detect_broker, ingest_file, write_upload_log
 
 router = APIRouter()
 
@@ -239,16 +239,66 @@ async def upload_statement(
     dest.write_bytes(content)
 
     try:
-        statement = ingest_file(str(dest), session)
+        statement, counts = ingest_file(str(dest), session)
     except Exception as exc:
+        write_upload_log(
+            session,
+            filename=name,
+            broker=broker_type,
+            account_id="",
+            account_name="",
+            year=0,
+            period_end=None,
+            nav_current=0.0,
+            twr_pct=0.0,
+            position_count=0,
+            trade_count=0,
+            deposit_count=0,
+            dividend_count=0,
+            source="upload",
+            status="error",
+            error_msg=str(exc),
+        )
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     end_label = (
         statement.period_end.strftime("%B %-d, %Y") if statement.period_end else str(statement.year)
+    )
+    write_upload_log(
+        session,
+        filename=name,
+        broker=statement.broker,
+        account_id=statement.account_id,
+        account_name=statement.account_name,
+        year=statement.year,
+        period_end=statement.period_end,
+        nav_current=statement.nav_current,
+        twr_pct=statement.twr_pct,
+        position_count=counts.position_count,
+        trade_count=counts.trade_count,
+        deposit_count=counts.deposit_count,
+        dividend_count=counts.dividend_count,
+        source="upload",
+        status="success",
     )
     return UploadResponse(
         year=statement.year,
         period=statement.period,
         period_end_label=end_label,
         account_id=statement.account_id,
+        broker=statement.broker,
+        account_name=statement.account_name,
+        position_count=counts.position_count,
+        trade_count=counts.trade_count,
+        deposit_count=counts.deposit_count,
+        dividend_count=counts.dividend_count,
+        nav_current=statement.nav_current,
+        twr_pct=statement.twr_pct,
     )
+
+
+@router.get("/upload-history", response_model=list[UploadLogItem])
+def get_upload_history(session: Session = Depends(get_session)) -> list[UploadLogItem]:
+    """Return all upload log entries, newest first."""
+    logs = session.exec(select(UploadLog).order_by(col(UploadLog.uploaded_at).desc())).all()
+    return [UploadLogItem.model_validate(log, from_attributes=True) for log in logs]

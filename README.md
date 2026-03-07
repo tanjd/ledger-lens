@@ -3,19 +3,20 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Dev Containers](https://img.shields.io/badge/Dev%20Containers-open-blue?logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/tanjd/ledger-lens)
 
-Personal portfolio analysis dashboard for Interactive Brokers (IBKR) annual activity statement CSV files. Upload one CSV per year and get a multi-year view of your portfolio's NAV, P&L, dividends, trades, and cash flows.
+Multi-broker portfolio analysis dashboard supporting Interactive Brokers (IBKR) and Moomoo. Upload CSV statements per year per broker and get a multi-year view of your portfolio's NAV, P&L, dividends, trades, and cash flows.
 
 ## Features
 
-- **Overview** — NAV history, time-weighted return, asset allocation, year-over-year summary
-- **Holdings** — open positions with cost basis, unrealized P&L, and portfolio allocation chart
-- **Trades** — stock and forex trade history with direction badges and commission breakdown
-- **Income** — dividends and withholding tax by symbol, with yield-on-cost and multi-year growth chart
-- **Cash Flows** — deposit/withdrawal timeline with monthly bar chart and cumulative NAV vs invested chart
-- **P&L Analysis** — realized/unrealized P&L (short-term + long-term), mark-to-market, corporate actions
-- **Trends** — multi-year portfolio growth, TWR by year, deposit vs growth breakdown
+- **Overview** — NAV history, time-weighted return, asset allocation, year-over-year summary; broker-aware in multi-broker mode
+- **Holdings** — open positions with cost basis, unrealized P&L, and portfolio allocation chart; Combined/IBKR/Moomoo tabs in multi-broker mode
+- **Trades** — stock and forex trade history with direction badges, commission breakdown, and broker badges
+- **Income** — dividends and withholding tax by symbol (IBKR)
+- **Cash Flows** — deposit/withdrawal timeline with monthly bar chart and cumulative NAV vs invested chart (IBKR)
+- **P&L Analysis** — realized/unrealized P&L (short-term + long-term), mark-to-market, corporate actions (IBKR)
+- **Trends** — multi-year portfolio growth, TWR by year, deposit vs growth breakdown (IBKR)
+- **Upload History** — persistent log of every import (manual upload or file-drop), with per-file counts and status
 - **Privacy mode** — blur all monetary values with a single toggle
-- **Upload dialog** — 2-step preview → import flow with duplicate detection
+- **Upload dialog** — 2-step preview → import flow with duplicate detection and inline result summary
 
 ## Tech Stack
 
@@ -63,13 +64,20 @@ make setup          # install backend + frontend deps + pre-commit hooks
 make dev            # backend on :8000 and frontend on :3000
 ```
 
-Drop your IBKR CSV files into the `data/` directory — the backend picks them up automatically.
+Drop CSV files into the `data/` directory — the backend picks them up automatically.
 
-## IBKR CSV Format
+## Supported CSV Formats
+
+| Broker | File type | Filename pattern |
+|--------|-----------|-----------------|
+| IBKR | Annual activity statement | `U1234567_2024_2024.csv` |
+| IBKR | YTD statement | `U1234567_20240101_20240930.csv` |
+| Moomoo | Trade history | `History-Margin Account(123456)-20240101-120000.csv` |
+| Moomoo | Positions snapshot | `Positions-Margin Account(123456)-20240101-120000.csv` |
 
 Export from IBKR: **Reports → Tax Documents / Activity → Annual Activity Statement → CSV**.
 
-The expected filename pattern is `<AccountID>_<Year>_<Year>.csv` (e.g. `U1234567_2024_2024.csv`). Re-uploading the same year is safe — the ingestor fully replaces the previous data.
+Re-uploading the same year is safe — the ingestor fully replaces the previous data. Every import is recorded in the Upload History page.
 
 ## Dev Commands
 

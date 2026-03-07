@@ -33,7 +33,7 @@ ledger-lens/
 │       └── routers/             # one router per endpoint group
 └── frontend/
     └── src/
-        ├── app/                 # Next.js App Router pages (7 tabs)
+        ├── app/                 # Next.js App Router pages (8 tabs)
         ├── components/          # per-tab component folders + shadcn/ui
         ├── lib/
         │   ├── api.ts           # typed fetch wrappers
@@ -67,7 +67,8 @@ Parsing gotchas:
 
 ## API Endpoints
 
-- `POST /api/upload` — upload new CSV, triggers ingest
+- `POST /api/upload` — upload new CSV, triggers ingest; returns enriched `UploadResponse` with counts + NAV
+- `GET /api/upload-history` — append-only log of all ingest events (upload + watcher), newest first
 - `GET /api/years` — list all ingested years
 - `GET /api/brokers` — list distinct broker names in DB
 - `GET /api/broker-info` — per-broker metadata: years + latest `period_end` date
@@ -89,7 +90,7 @@ Parsing gotchas:
 - **Broker detection**: `/api/brokers` returns distinct broker names from DB; sidebar and contexts react dynamically — no Moomoo section shown if no Moomoo data exists
 - **BrokerContext** (`frontend/src/context/BrokerContext.tsx`): provides `brokerList`, `selectedBroker`, `setSelectedBroker` globally
 - **Sidebar navigation** (multi-broker mode):
-  - Top-level combined: Overview, Holdings, Trades (sets `selectedBroker=null`)
+  - Top-level combined: Overview, Holdings, Trades, Upload History (sets `selectedBroker=null`)
   - IBKR section (blue): Overview, Holdings, Trades, Income, Cash Flows, P&L Analysis, Trends
   - Moomoo section (orange): Overview, Holdings, Trades
   - Shows "data through {period_end}" under each broker label
@@ -107,6 +108,7 @@ Parsing gotchas:
 5. **Cash Flows** — deposits timeline + bar chart (IBKR only)
 6. **P&L Analysis** — realized/unrealized, MTM, corporate actions (IBKR only)
 7. **Trends** — multi-year portfolio growth, TWR by year (IBKR only)
+8. **Upload History** — table of all ingest events (manual upload + file-drop watcher); columns: When, File, Broker, Account, Year, NAV, Counts, Source badge, Status icon; global (not broker-specific)
 
 ## Dev Commands
 
@@ -139,5 +141,7 @@ make docker-build   # build both Docker images
 1. CSV dropped in `data/` (or uploaded via UI)
 2. `watcher.py` (watchdog) detects file → calls `ingestor.py`
 3. `ingestor.py` calls `parser/base.py` → section parsers → upserts to SQLite
-4. Re-uploading the same year is safe (upsert by `account_id + year`)
-5. Frontend refreshes via SWR `mutate()` after upload
+4. `ingest_file()` returns `tuple[Statement, IngestCounts]`
+5. Caller (`upload.py` or `watcher.py`) writes an `UploadLog` row via `write_upload_log()`
+6. Re-uploading the same year is safe (upsert by `account_id + year`); each import appends a new log row
+7. Frontend refreshes via SWR `mutate()` after upload

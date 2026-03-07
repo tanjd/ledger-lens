@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { previewStatement, uploadStatement } from "@/lib/api";
-import type { PreviewResponse } from "@/lib/types";
+import type { PreviewResponse, UploadResponse } from "@/lib/types";
 import { fmtUsd, fmtPct } from "@/lib/formatters";
 import { revalidateAll } from "@/hooks/useStatement";
 import { useYear } from "@/context/YearContext";
@@ -25,6 +25,7 @@ interface FileEntry {
   file: File;
   status: FileStatus;
   preview?: PreviewResponse;
+  result?: UploadResponse;
   error?: string;
 }
 
@@ -95,8 +96,29 @@ function PreviewDetails({ preview }: { preview: PreviewResponse }) {
   );
 }
 
+function ResultDetails({ result }: { result: UploadResponse }) {
+  const brokerLabel = BROKER_LABELS[result.broker] ?? result.broker.toUpperCase();
+  const parts: string[] = [];
+  if (result.trade_count > 0) parts.push(`${result.trade_count} trades`);
+  if (result.position_count > 0) parts.push(`${result.position_count} positions`);
+  if (result.deposit_count > 0) parts.push(`${result.deposit_count} deposits`);
+  if (result.dividend_count > 0) parts.push(`${result.dividend_count} dividends`);
+  const countsLine = parts.join(" · ") || result.period_end_label;
+
+  return (
+    <div className="pl-6 space-y-0.5 text-xs text-muted-foreground">
+      <span>
+        {brokerLabel} · {result.year} · {result.period_end_label}
+        {result.nav_current > 0 && ` · ${fmtUsd(result.nav_current)}`}
+        {result.twr_pct !== 0 && ` · ${fmtPct(result.twr_pct)} TWR`}
+      </span>
+      {countsLine && <span className="block">{countsLine}</span>}
+    </div>
+  );
+}
+
 function EntryRow({ entry }: EntryRowProps) {
-  const { file, status, preview, error } = entry;
+  const { file, status, preview, result, error } = entry;
   return (
     <div className="rounded-md border p-3 text-sm space-y-1">
       <div className="flex items-center gap-2">
@@ -117,7 +139,11 @@ function EntryRow({ entry }: EntryRowProps) {
 
       {error && <p className="pl-6 text-xs text-destructive">{error}</p>}
 
-      {preview && status !== "error" && <PreviewDetails preview={preview} />}
+      {status === "done" && result ? (
+        <ResultDetails result={result} />
+      ) : (
+        preview && status !== "error" && <PreviewDetails preview={preview} />
+      )}
     </div>
   );
 }
@@ -180,10 +206,14 @@ export function UploadDialog() {
       updateEntry(i, { status: "importing" });
       try {
         const result = await uploadStatement(entries[i].file);
-        updateEntry(i, { status: "done" });
-        toast.success(
-          `Imported ${result.year} through ${result.period_end_label} for ${result.account_id}`,
-        );
+        updateEntry(i, { status: "done", result });
+        const parts: string[] = [];
+        if (result.trade_count > 0) parts.push(`${result.trade_count} trades`);
+        if (result.position_count > 0) parts.push(`${result.position_count} positions`);
+        if (result.deposit_count > 0) parts.push(`${result.deposit_count} deposits`);
+        toast.success(`Imported ${result.year} · ${result.account_id}`, {
+          description: parts.length > 0 ? parts.join(" · ") : result.period_end_label,
+        });
         imported++;
       } catch (err) {
         updateEntry(i, {
