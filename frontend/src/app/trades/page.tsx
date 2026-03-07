@@ -1,6 +1,7 @@
 "use client";
 
 import { useYear } from "@/context/YearContext";
+import { useBroker } from "@/context/BrokerContext";
 import {
   useStockTrades,
   useForexTrades,
@@ -16,6 +17,7 @@ import { fmtUsd, pnlColor } from "@/lib/formatters";
 
 export default function TradesPage() {
   const { selectedYear } = useYear();
+  const { selectedBroker } = useBroker();
   const { data: stocks, isLoading: loadingStocks } = useStockTrades(selectedYear);
   const { data: forex, isLoading: loadingForex } = useForexTrades(selectedYear);
   const { data: commTimeseries, isLoading: commLoading } = useCommissionTimeseries();
@@ -24,9 +26,17 @@ export default function TradesPage() {
     return <p className="text-muted-foreground">Select a year to view trades.</p>;
   }
 
-  // Per-year commission totals computed from already-loaded trade data
-  const stockComm = stocks?.trades.reduce((s, t) => s + t.commission, 0) ?? 0;
-  const forexComm = forex?.trades.reduce((s, t) => s + t.commission, 0) ?? 0;
+  // Apply broker filter client-side (trades already have broker field)
+  const visibleStocks = selectedBroker
+    ? (stocks?.trades ?? []).filter((t) => t.broker === selectedBroker)
+    : (stocks?.trades ?? []);
+  const visibleForex = selectedBroker
+    ? (forex?.trades ?? []).filter((t) => t.broker === selectedBroker)
+    : (forex?.trades ?? []);
+
+  // Per-year commission totals computed from visible (filtered) trades
+  const stockComm = visibleStocks.reduce((s, t) => s + t.commission, 0);
+  const forexComm = visibleForex.reduce((s, t) => s + t.commission, 0);
   const totalComm = stockComm + forexComm;
 
   const allYearsTotalComm = commTimeseries
@@ -82,19 +92,19 @@ export default function TradesPage() {
             <KpiCard
               title="Total Commissions"
               value={fmtUsd(Math.abs(totalComm))}
-              subtitle={`${(stocks?.trades.length ?? 0) + (forex?.trades.length ?? 0)} trades`}
+              subtitle={`${visibleStocks.length + visibleForex.length} trades`}
               valueClass={pnlColor(-1)}
             />
             <KpiCard
               title="Stock Commissions"
               value={fmtUsd(Math.abs(stockComm))}
-              subtitle={`${stocks?.trades.length ?? 0} stock trades`}
+              subtitle={`${visibleStocks.length} stock trades`}
               valueClass={pnlColor(-1)}
             />
             <KpiCard
               title="Forex Commissions"
               value={fmtUsd(Math.abs(forexComm))}
-              subtitle={`${forex?.trades.length ?? 0} forex trades`}
+              subtitle={`${visibleForex.length} forex trades`}
               valueClass={pnlColor(-1)}
             />
           </div>
@@ -103,24 +113,24 @@ export default function TradesPage() {
         <Tabs defaultValue="stocks">
           <TabsList>
             <TabsTrigger value="stocks">
-              Stocks {stocks ? `(${stocks.trades.length})` : ""}
+              Stocks {stocks ? `(${visibleStocks.length})` : ""}
             </TabsTrigger>
             <TabsTrigger value="forex">
-              Forex {forex ? `(${forex.trades.length})` : ""}
+              Forex {forex ? `(${visibleForex.length})` : ""}
             </TabsTrigger>
           </TabsList>
           <TabsContent value="stocks" className="mt-4">
             {loadingStocks || !stocks ? (
               <Skeleton className="h-48 w-full" />
             ) : (
-              <TradesTable trades={stocks.trades} />
+              <TradesTable trades={visibleStocks} />
             )}
           </TabsContent>
           <TabsContent value="forex" className="mt-4">
             {loadingForex || !forex ? (
               <Skeleton className="h-48 w-full" />
             ) : (
-              <TradesTable trades={forex.trades} currencyLabel="Currency" />
+              <TradesTable trades={visibleForex} currencyLabel="Currency" />
             )}
           </TabsContent>
         </Tabs>

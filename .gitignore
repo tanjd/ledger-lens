@@ -29,11 +29,8 @@ frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
 
-# Database and personal financial data
-data/ledger_lens.db
-data/ledger_lens.db-shm
-data/ledger_lens.db-wal
-data/*.csv
+# Database and personal financial data — ignore entire data directory
+data/
 
 # IDE and OS
 .idea/

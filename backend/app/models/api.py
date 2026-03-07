@@ -13,6 +13,17 @@ class _Base(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Broker info
+# ---------------------------------------------------------------------------
+
+
+class BrokerInfo(_Base):
+    broker: str
+    years: list[int]
+    latest_period_end: date | None
+
+
+# ---------------------------------------------------------------------------
 # Overview
 # ---------------------------------------------------------------------------
 
@@ -41,6 +52,12 @@ class AssetAllocation(_Base):
     value: float
 
 
+class BrokerNAV(_Base):
+    broker: str
+    currency: str
+    nav_current: float
+
+
 class OverviewResponse(_Base):
     year: int
     period: str
@@ -49,6 +66,7 @@ class OverviewResponse(_Base):
     nav: NavSummary
     change_in_nav: ChangeInNav
     asset_allocation: list[AssetAllocation]
+    broker_breakdown: list[BrokerNAV] = []
 
 
 # ---------------------------------------------------------------------------
@@ -66,6 +84,7 @@ class PositionItem(_Base):
     close_price: float
     current_value: float
     unrealized_pnl: float
+    broker: str = "ibkr"
 
 
 class HoldingsTotals(_Base):
@@ -99,6 +118,7 @@ class TradeItem(_Base):
     mtm_pnl: float
     codes: list[str]
     direction: str
+    broker: str = "ibkr"
 
 
 class TradesResponse(_Base):
@@ -299,6 +319,7 @@ class CommissionTimeseriesItem(_Base):
 
 
 class PreviewResponse(BaseModel):
+    broker: str = "ibkr"
     account_id: str
     account_name: str
     year: int
@@ -313,6 +334,8 @@ class PreviewResponse(BaseModel):
     deposit_count: int
     dividend_count: int
     already_imported: bool
+    # For moomoo trade history files covering multiple years
+    years_detected: list[int] | None = None
 
 
 class UploadResponse(_Base):

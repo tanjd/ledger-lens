@@ -23,6 +23,7 @@ from app.routers import (
     trades,
     upload,
 )
+from app.services.migration import migrate_data_dir
 from app.services.watcher import ingest_existing, start_watcher
 
 logging.basicConfig(level=logging.INFO)
@@ -37,6 +38,7 @@ except PackageNotFoundError:
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     migrate_schema(engine)
     create_all_tables()
+    migrate_data_dir(settings.data_dir)
     ingest_existing(settings.data_dir)
     observer = start_watcher(settings.data_dir)
     yield

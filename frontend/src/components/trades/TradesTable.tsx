@@ -22,13 +22,17 @@ const CODE_LABELS: Record<string, string> = {
   Ca: "Cancel",
 };
 
+const BROKER_LABELS: Record<string, string> = { ibkr: "IBKR", moomoo: "Moomoo" };
+
 interface Props {
   trades: TradeItem[];
   currencyLabel?: string;
 }
 
 export function TradesTable({ trades, currencyLabel }: Props) {
-  if (trades.length === 0) {
+  const sorted = [...trades].sort((a, b) => b.trade_date.localeCompare(a.trade_date));
+  const multibroker = new Set(sorted.map((t) => t.broker)).size > 1;
+  if (sorted.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
         No trades found.
@@ -43,6 +47,8 @@ export function TradesTable({ trades, currencyLabel }: Props) {
           <TableRow>
             <TableHead>Date</TableHead>
             <TableHead>Symbol</TableHead>
+            <TableHead>Side</TableHead>
+            {multibroker && <TableHead>Broker</TableHead>}
             {currencyLabel && <TableHead>Currency</TableHead>}
             <TableHead className="text-right">Qty</TableHead>
             <TableHead className="text-right">Price</TableHead>
@@ -53,12 +59,31 @@ export function TradesTable({ trades, currencyLabel }: Props) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {trades.map((t) => (
+          {sorted.map((t) => (
             <TableRow key={t.id}>
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 {fmtDate(t.trade_date)}
               </TableCell>
               <TableCell className="font-medium">{t.symbol}</TableCell>
+              <TableCell>
+                <Badge
+                  variant="outline"
+                  className={
+                    t.direction === "buy"
+                      ? "border-green-600 text-green-600 dark:border-green-400 dark:text-green-400 text-xs"
+                      : "border-red-500 text-red-500 dark:border-red-400 dark:text-red-400 text-xs"
+                  }
+                >
+                  {t.direction === "buy" ? "Buy" : "Sell"}
+                </Badge>
+              </TableCell>
+              {multibroker && (
+                <TableCell>
+                  <Badge variant="outline" className="text-xs">
+                    {BROKER_LABELS[t.broker] ?? t.broker}
+                  </Badge>
+                </TableCell>
+              )}
               {currencyLabel && (
                 <TableCell className="text-muted-foreground">
                   {t.currency}

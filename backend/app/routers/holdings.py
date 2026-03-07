@@ -15,14 +15,17 @@ router = APIRouter()
 @router.get("/holdings", response_model=HoldingsResponse)
 def get_holdings(
     year: int | None = None,
+    broker: str | None = None,
     session: Session = Depends(get_session),
 ) -> HoldingsResponse:
-    stmt = _get_statement(year, session)
-    assert stmt.id is not None
+    stmts = _get_statements(year, broker, session)
+    stmt_ids = [s.id for s in stmts if s.id is not None]
+    stmt_broker = {s.id: s.broker for s in stmts if s.id is not None}
+    primary_year = stmts[0].year
 
     positions = session.exec(
         select(Position)
-        .where(Position.statement_id == stmt.id)
+        .where(Position.statement_id.in_(stmt_ids))  # type: ignore
         .order_by(Position.current_value.desc())  # type: ignore
     ).all()
 
@@ -37,6 +40,7 @@ def get_holdings(
             close_price=p.close_price,
             current_value=p.current_value,
             unrealized_pnl=p.unrealized_pnl,
+            broker=stmt_broker.get(p.statement_id, "ibkr"),
         )
         for p in positions
     ]
@@ -47,16 +51,24 @@ def get_holdings(
         unrealized_pnl=sum(p.unrealized_pnl for p in positions),
     )
 
-    return HoldingsResponse(year=stmt.year, positions=items, totals=totals)
+    return HoldingsResponse(year=primary_year, positions=items, totals=totals)
 
 
-def _get_statement(year: int | None, session: Session) -> Statement:
+def _get_statements(year: int | None, broker: str | None, session: Session) -> list[Statement]:
     if year is not None:
-        s = session.exec(select(Statement).where(Statement.year == year)).first()
+        query = select(Statement).where(Statement.year == year)  # type: ignore
     else:
-        s = session.exec(
+        latest = session.exec(
             select(Statement).order_by(Statement.year.desc())  # type: ignore
         ).first()
-    if s is None:
+        if latest is None:
+            raise HTTPException(status_code=404, detail="No data found for the requested year")
+        query = select(Statement).where(Statement.year == latest.year)  # type: ignore
+
+    if broker:
+        query = query.where(Statement.broker == broker)  # type: ignore
+
+    stmts = session.exec(query).all()
+    if not stmts:
         raise HTTPException(status_code=404, detail="No data found for the requested year")
-    return s
+    return list(stmts)

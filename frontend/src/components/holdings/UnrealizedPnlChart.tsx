@@ -21,12 +21,14 @@ interface Props {
 export function UnrealizedPnlChart({ positions }: Props) {
   if (positions.length === 0) return null;
 
-  const chartData = [...positions]
-    .sort((a, b) => b.unrealized_pnl - a.unrealized_pnl)
-    .map((p) => ({
-      symbol: p.symbol,
-      "Unrealized P&L": parseFloat(p.unrealized_pnl.toFixed(2)),
-    }));
+  // Merge same-symbol positions (e.g. same stock held in multiple brokers)
+  const bySymbol = new Map<string, number>();
+  for (const p of positions) {
+    bySymbol.set(p.symbol, (bySymbol.get(p.symbol) ?? 0) + p.unrealized_pnl);
+  }
+  const chartData = [...bySymbol.entries()]
+    .map(([symbol, pnl]) => ({ symbol, "Unrealized P&L": parseFloat(pnl.toFixed(2)) }))
+    .sort((a, b) => b["Unrealized P&L"] - a["Unrealized P&L"]);
 
   return (
     <Card>
@@ -36,7 +38,7 @@ export function UnrealizedPnlChart({ positions }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={Math.max(180, positions.length * 44)}>
+        <ResponsiveContainer width="100%" height={Math.max(180, chartData.length * 44)}>
           <BarChart
             data={chartData}
             layout="vertical"

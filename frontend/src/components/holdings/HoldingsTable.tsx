@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import type { HoldingsResponse, PositionItem } from "@/lib/types";
+import type { PositionItem } from "@/lib/types";
 import { fmtUsd, fmtQty, pnlColor } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
@@ -41,14 +41,20 @@ function SortHeader({ col, label, active, onSort }: SortHeaderProps) {
 }
 
 interface Props {
-  data: HoldingsResponse;
+  positions: PositionItem[];
 }
 
-export function HoldingsTable({ data }: Props) {
+export function HoldingsTable({ positions }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("current_value");
   const [dir, setDir] = useState<Dir>("desc");
 
-  const sorted = [...data.positions].sort((a, b) => {
+  const totals = {
+    cost_basis: positions.reduce((s, p) => s + p.cost_basis, 0),
+    current_value: positions.reduce((s, p) => s + p.current_value, 0),
+    unrealized_pnl: positions.reduce((s, p) => s + p.unrealized_pnl, 0),
+  };
+
+  const sorted = [...positions].sort((a, b) => {
     const av = a[sortKey] as number | string;
     const bv = b[sortKey] as number | string;
     const cmp =
@@ -97,7 +103,7 @@ export function HoldingsTable({ data }: Props) {
             const pnlPct =
               pos.cost_basis !== 0 ? (pos.unrealized_pnl / pos.cost_basis) * 100 : 0;
             return (
-              <TableRow key={pos.symbol}>
+              <TableRow key={`${pos.broker}-${pos.symbol}`}>
                 <TableCell className="font-medium">{pos.symbol}</TableCell>
                 <TableCell className="hidden max-w-[180px] truncate text-muted-foreground md:table-cell">
                   {pos.description}
@@ -123,15 +129,15 @@ export function HoldingsTable({ data }: Props) {
               Total
             </TableCell>
             <TableCell className="text-right font-mono font-semibold">
-              {fmtUsd(data.totals.current_value)}
+              {fmtUsd(totals.current_value)}
             </TableCell>
             <TableCell
               className={cn(
                 "text-right font-mono font-semibold",
-                pnlColor(data.totals.unrealized_pnl),
+                pnlColor(totals.unrealized_pnl),
               )}
             >
-              {fmtUsd(data.totals.unrealized_pnl)}
+              {fmtUsd(totals.unrealized_pnl)}
             </TableCell>
           </TableRow>
         </TableFooter>
