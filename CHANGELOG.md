@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v1.2.0 (2026-03-07)
+
+### Chores
+
+- Sync frontend version to 1.1.0 [skip ci]
+  ([`cb8f177`](https://github.com/tanjd/ledger-lens/commit/cb8f177ded5ce8a37ff33e7e021089f6cf34ea52))
+
+### Continuous Integration
+
+- Use version_variables to sync frontend package.json on release
+  ([`54b32c9`](https://github.com/tanjd/ledger-lens/commit/54b32c9fa13e242aad0de71de7030d8e83e19809))
+
+### Features
+
+- Add multi-broker support with Moomoo (Futu SG) integration
+  ([`bf984a0`](https://github.com/tanjd/ledger-lens/commit/bf984a05f431bff920e5fd2388bd871457628b52))
+
+
 ## v1.1.0 (2026-03-05)
 
 ### Documentation
