@@ -13,6 +13,7 @@ import type {
   PositionTimeseriesItem,
   PreviewResponse,
   TradesResponse,
+  UploadLogItem,
   UploadResponse,
   VersionResponse,
 } from "@/lib/types";
@@ -67,6 +68,7 @@ export function getPerformanceUrl(year: number) {
 export const VERSION_URL = "/api/version";
 export const BROKERS_URL = "/api/brokers";
 export const BROKER_INFO_URL = "/api/broker-info";
+export const UPLOAD_HISTORY_URL = "/api/upload-history";
 
 export function getTimeseriesUrl(key: "nav" | "deposits" | "dividends" | "pnl", broker?: string) {
   const base = `/api/timeseries/${key}`;
@@ -134,5 +136,6 @@ export {
   type PnlTimeseriesItem,
   type PositionTimeseriesItem,
   type TradesResponse,
+  type UploadLogItem,
   type VersionResponse,
 };

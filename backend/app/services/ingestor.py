@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import logging
 import re
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
 from sqlalchemy import delete as sa_delete
-from sqlmodel import Session, select
+from sqlalchemy import func
+from sqlmodel import Session, col, select
 
 from app.models.db import (
     CorporateAction,
@@ -26,6 +28,7 @@ from app.models.db import (
     Position,
     Statement,
     Trade,
+    UploadLog,
     WithholdingTax,
 )
 from app.parser.base import parse_ibkr_csv
@@ -48,6 +51,60 @@ from app.parser.sections.trades import parse_trades
 logger = logging.getLogger(__name__)
 
 _IBKR_RE = re.compile(r"^[A-Z]\d+_\d{4}(?:\d{4})?_\d{4}(?:\d{4})?\.csv$")
+
+
+@dataclass
+class IngestCounts:
+    position_count: int = field(default=0)
+    trade_count: int = field(default=0)
+    deposit_count: int = field(default=0)
+    dividend_count: int = field(default=0)
+
+
+def write_upload_log(
+    session: Session,
+    *,
+    filename: str,
+    broker: str,
+    account_id: str,
+    account_name: str,
+    year: int,
+    period_end: date | None,
+    nav_current: float,
+    twr_pct: float,
+    position_count: int,
+    trade_count: int,
+    deposit_count: int,
+    dividend_count: int,
+    source: str,
+    status: str,
+    error_msg: str | None = None,
+) -> None:
+    """Insert an UploadLog row. Failures are swallowed so they never break the main ingest."""
+    try:
+        log = UploadLog(
+            filename=filename,
+            broker=broker,
+            account_id=account_id,
+            account_name=account_name,
+            year=year,
+            period_end=period_end,
+            nav_current=nav_current,
+            twr_pct=twr_pct,
+            position_count=position_count,
+            trade_count=trade_count,
+            deposit_count=deposit_count,
+            dividend_count=dividend_count,
+            source=source,
+            status=status,
+            error_msg=error_msg,
+        )
+        session.add(log)
+        session.commit()
+    except Exception:
+        logger.exception("Failed to write upload log (non-fatal)")
+
+
 _MOOMOO_TRADES_RE = re.compile(r"^History-Margin Account\(\d+\)-\d{8}-\d{6}\.csv$")
 _MOOMOO_POSITIONS_RE = re.compile(r"^Positions-Margin Account\(\d+\)-\d{8}-\d{6}\.csv$")
 
@@ -61,11 +118,11 @@ def detect_broker(filename: str) -> str:
     return "ibkr"
 
 
-def ingest_file(filepath: str | Path, session: Session) -> Statement:
+def ingest_file(filepath: str | Path, session: Session) -> tuple[Statement, IngestCounts]:
     """Parse a CSV (IBKR or moomoo) and upsert all records.
 
     Dispatches to the appropriate broker-specific ingestor based on filename.
-    Returns the primary Statement (most recent year for moomoo trades).
+    Returns the primary Statement (most recent year for moomoo trades) and IngestCounts.
     """
     broker = detect_broker(Path(filepath).name)
     if broker == "moomoo-trades":
@@ -75,7 +132,7 @@ def ingest_file(filepath: str | Path, session: Session) -> Statement:
     return _ingest_ibkr(filepath, session)
 
 
-def _ingest_ibkr(filepath: str | Path, session: Session) -> Statement:
+def _ingest_ibkr(filepath: str | Path, session: Session) -> tuple[Statement, IngestCounts]:
     """Parse an IBKR CSV and upsert all records for that (account_id, year)."""
     logger.info("Ingesting %s", filepath)
     raw = parse_ibkr_csv(filepath)
@@ -133,8 +190,25 @@ def _ingest_ibkr(filepath: str | Path, session: Session) -> Statement:
     _ingest_corporate_actions(raw, stmt_id, year, session)
 
     session.commit()
+
+    counts = IngestCounts(
+        position_count=session.exec(
+            select(func.count(col(Position.id))).where(Position.statement_id == stmt_id)
+        ).one(),  # type: ignore[arg-type]
+        trade_count=session.exec(
+            select(func.count(col(Trade.id))).where(
+                Trade.statement_id == stmt_id, Trade.asset_category != "Forex"
+            )
+        ).one(),  # type: ignore[arg-type]
+        deposit_count=session.exec(
+            select(func.count(col(Deposit.id))).where(Deposit.statement_id == stmt_id)
+        ).one(),  # type: ignore[arg-type]
+        dividend_count=session.exec(
+            select(func.count(col(Dividend.id))).where(Dividend.statement_id == stmt_id)
+        ).one(),  # type: ignore[arg-type]
+    )
     logger.info("Ingested year=%d account=%s (statement.id=%d)", year, account_id, stmt_id)
-    return statement
+    return statement, counts
 
 
 # ---------------------------------------------------------------------------
@@ -142,13 +216,13 @@ def _ingest_ibkr(filepath: str | Path, session: Session) -> Statement:
 # ---------------------------------------------------------------------------
 
 
-def ingest_moomoo_trades(filepath: str | Path, session: Session) -> Statement:
+def ingest_moomoo_trades(filepath: str | Path, session: Session) -> tuple[Statement, IngestCounts]:
     """Parse a moomoo trade history CSV and upsert Trade records per calendar year.
 
     Creates one Statement per year found in the file.  Existing Trade rows for
     each affected (account_id, year) statement are deleted and replaced; Position
     rows are left untouched (partial upsert).
-    Returns the Statement for the most recent year.
+    Returns the Statement for the most recent year and combined IngestCounts.
     """
     filepath = Path(filepath)
     logger.info("Ingesting moomoo trades: %s", filepath)
@@ -157,6 +231,7 @@ def ingest_moomoo_trades(filepath: str | Path, session: Session) -> Statement:
     export_date = extract_moomoo_date(filepath)
 
     last_stmt: Statement | None = None
+    total_trades = 0
     for year in sorted(trades_by_year):
         stmt = _get_or_create_moomoo_statement(account_id, year, session, export_date)
         assert stmt.id is not None
@@ -184,6 +259,7 @@ def ingest_moomoo_trades(filepath: str | Path, session: Session) -> Statement:
                     direction=t["direction"],
                 )
             )
+        total_trades += len(trades_by_year[year])
         last_stmt = stmt
         logger.info(
             "Ingested %d moomoo trades for year=%d account=%s",
@@ -195,10 +271,13 @@ def ingest_moomoo_trades(filepath: str | Path, session: Session) -> Statement:
     session.commit()
     if last_stmt is None:
         raise ValueError("No filled trades found in moomoo trade history file")
-    return last_stmt
+    counts = IngestCounts(trade_count=total_trades)
+    return last_stmt, counts
 
 
-def ingest_moomoo_positions(filepath: str | Path, session: Session) -> Statement:
+def ingest_moomoo_positions(
+    filepath: str | Path, session: Session
+) -> tuple[Statement, IngestCounts]:
     """Parse a moomoo positions snapshot CSV and upsert Position records.
 
     Creates or updates the Statement for the snapshot year.  Existing Position
@@ -248,7 +327,8 @@ def ingest_moomoo_positions(filepath: str | Path, session: Session) -> Statement
     logger.info(
         "Ingested %d moomoo positions for year=%d account=%s", len(positions), year, account_id
     )
-    return stmt
+    counts = IngestCounts(position_count=len(positions))
+    return stmt, counts
 
 
 def _get_or_create_moomoo_statement(

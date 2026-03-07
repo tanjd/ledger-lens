@@ -217,3 +217,27 @@ class CorporateAction(SQLModel, table=True):
     proceeds: float = 0.0
     value: float = 0.0
     realized_pnl: float = 0.0
+
+
+class UploadLog(SQLModel, table=True):
+    """Append-only audit log of every ingest event (upload or watcher)."""
+
+    __tablename__: ClassVar[str] = "upload_log"  # type: ignore
+
+    id: int | None = Field(default=None, primary_key=True)
+    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(UTC).replace(tzinfo=None))
+    filename: str
+    broker: str = "unknown"
+    account_id: str = ""
+    account_name: str = ""
+    year: int = 0
+    period_end: date | None = None
+    nav_current: float = 0.0
+    twr_pct: float = 0.0
+    position_count: int = 0
+    trade_count: int = 0
+    deposit_count: int = 0
+    dividend_count: int = 0
+    source: str = "upload"  # "upload" | "watcher"
+    status: str = "success"  # "success" | "error"
+    error_msg: str | None = None

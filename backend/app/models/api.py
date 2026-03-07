@@ -343,3 +343,31 @@ class UploadResponse(_Base):
     period: str
     period_end_label: str
     account_id: str
+    broker: str = "ibkr"
+    account_name: str = ""
+    position_count: int = 0
+    trade_count: int = 0
+    deposit_count: int = 0
+    dividend_count: int = 0
+    nav_current: float = 0.0
+    twr_pct: float = 0.0
+
+
+class UploadLogItem(BaseModel):
+    id: int
+    uploaded_at: datetime
+    filename: str
+    broker: str
+    account_id: str
+    account_name: str
+    year: int
+    period_end: date | None
+    nav_current: float
+    twr_pct: float
+    position_count: int
+    trade_count: int
+    deposit_count: int
+    dividend_count: int
+    source: str
+    status: str
+    error_msg: str | None

@@ -8,6 +8,7 @@ import {
   BookOpen,
   CreditCard,
   DollarSign,
+  History,
   Home,
   LineChart,
   TrendingUp,
@@ -19,6 +20,7 @@ const COMBINED_NAV = [
   { href: "/overview", label: "Overview", icon: Home },
   { href: "/holdings", label: "Holdings", icon: BookOpen },
   { href: "/trades", label: "Trades", icon: CreditCard },
+  { href: "/history", label: "Upload History", icon: History },
 ];
 
 // Flat nav used when only one broker exists
@@ -30,6 +32,7 @@ const FLAT_NAV = [
   { href: "/cashflows", label: "Cash Flows", icon: BarChart3 },
   { href: "/performance", label: "P&L Analysis", icon: TrendingUp },
   { href: "/trends", label: "Trends", icon: LineChart },
+  { href: "/history", label: "Upload History", icon: History },
 ];
 
 const IBKR_NAV = [

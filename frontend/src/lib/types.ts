@@ -311,6 +311,34 @@ export interface UploadResponse {
   period: string;
   period_end_label: string;
   account_id: string;
+  broker: string;
+  account_name: string;
+  position_count: number;
+  trade_count: number;
+  deposit_count: number;
+  dividend_count: number;
+  nav_current: number;
+  twr_pct: number;
+}
+
+export interface UploadLogItem {
+  id: number;
+  uploaded_at: string;
+  filename: string;
+  broker: string;
+  account_id: string;
+  account_name: string;
+  year: number;
+  period_end: string | null;
+  nav_current: number;
+  twr_pct: number;
+  position_count: number;
+  trade_count: number;
+  deposit_count: number;
+  dividend_count: number;
+  source: string;
+  status: string;
+  error_msg: string | null;
 }
 
 // ---------------------------------------------------------------------------
