@@ -19,16 +19,67 @@ permissions:
   contents: read
 
 jobs:
-  release:
-    name: Semantic Release
+  # ---------------------------------------------------------------------------
+  # Job 1: Verify both Docker images build successfully.
+  # Semantic release only runs if this passes, ensuring we never tag a release
+  # that produces broken images.  Layers are cached in GHA cache for reuse by
+  # the push job.
+  # ---------------------------------------------------------------------------
+  build-check:
+    name: Verify Docker Builds
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     # For workflow_run: only when CI succeeded and this isn't already a release commit.
     # For workflow_dispatch: always run.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
        !contains(github.event.workflow_run.head_commit.message, 'chore(release)'))
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      # When triggered by workflow_run, pin to the exact SHA that CI tested.
+      - name: Force branch to workflow sha
+        if: github.event_name == 'workflow_run'
+        run: git reset --hard ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend (verify — no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build frontend (verify — no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.frontend
+          push: false
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Bump version, write changelog, create GitHub release + tag.
+  # Blocked on build-check succeeding.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build-check
 
     permissions:
       contents: write
@@ -42,7 +93,6 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      # When triggered by workflow_run, pin to the exact SHA that CI tested.
       - name: Force branch to workflow sha
         if: github.event_name == 'workflow_run'
         run: git reset --hard ${{ github.event.workflow_run.head_sha }}
@@ -63,6 +113,11 @@ jobs:
       released: ${{ steps.release.outputs.released }}
       tag: ${{ steps.release.outputs.tag }}
 
+  # ---------------------------------------------------------------------------
+  # Job 3: Build images at the release tag and push to Docker Hub.
+  # GHA layer cache from build-check means only version-file layers rebuild;
+  # all heavy dependency layers are served from cache.
+  # ---------------------------------------------------------------------------
   docker:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
@@ -92,14 +147,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ needs.release.outputs.tag }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
 
       - name: Set image metadata
         id: meta
@@ -131,8 +178,8 @@ jobs:
           tags: |
             ${{ steps.meta.outputs.backend_image }}:latest
             ${{ steps.meta.outputs.backend_image }}:${{ steps.meta.outputs.version }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
       - name: Build and push frontend
         uses: docker/build-push-action@v6
@@ -144,5 +191,5 @@ jobs:
           tags: |
             ${{ steps.meta.outputs.frontend_image }}:latest
             ${{ steps.meta.outputs.frontend_image }}:${{ steps.meta.outputs.version }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
