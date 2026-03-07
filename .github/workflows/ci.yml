@@ -22,11 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install uv and set Python 3.14
+      - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          python-version: "3.14"
+          working-directory: backend
 
       - name: Install backend dependencies
         run: uv sync --all-extras --dev
