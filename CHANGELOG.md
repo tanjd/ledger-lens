@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.3.0 (2026-03-07)
+
+### Features
+
+- Add upload history log and ingest summary ([#2](https://github.com/tanjd/ledger-lens/pull/2),
+  [`3c1a3af`](https://github.com/tanjd/ledger-lens/commit/3c1a3af2ed036c393c28a1d9bbe51a0c50edfbd8))
+
+
 ## v1.2.0 (2026-03-07)
 
 ### Chores
