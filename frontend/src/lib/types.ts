@@ -28,6 +28,12 @@ export interface AssetAllocation {
   value: number;
 }
 
+export interface BrokerNAV {
+  broker: string;
+  currency: string;
+  nav_current: number;
+}
+
 export interface OverviewResponse {
   year: number;
   period: string;
@@ -36,6 +42,7 @@ export interface OverviewResponse {
   nav: NavSummary;
   change_in_nav: ChangeInNav;
   asset_allocation: AssetAllocation[];
+  broker_breakdown: BrokerNAV[];
 }
 
 // ---------------------------------------------------------------------------
@@ -52,6 +59,7 @@ export interface PositionItem {
   close_price: number;
   current_value: number;
   unrealized_pnl: number;
+  broker: string;
 }
 
 export interface HoldingsTotals {
@@ -84,6 +92,7 @@ export interface TradeItem {
   mtm_pnl: number;
   codes: string[];
   direction: string;
+  broker: string;
 }
 
 export interface TradesResponse {
@@ -279,6 +288,7 @@ export interface CommissionTimeseriesItem {
 // ---------------------------------------------------------------------------
 
 export interface PreviewResponse {
+  broker: string;
   account_id: string;
   account_name: string;
   year: number;
@@ -293,6 +303,7 @@ export interface PreviewResponse {
   deposit_count: number;
   dividend_count: number;
   already_imported: boolean;
+  years_detected?: number[];
 }
 
 export interface UploadResponse {
@@ -308,4 +319,10 @@ export interface UploadResponse {
 
 export interface VersionResponse {
   version: string;
+}
+
+export interface BrokerInfo {
+  broker: string;
+  years: number[];
+  latest_period_end: string | null; // ISO date e.g. "2025-12-31"
 }

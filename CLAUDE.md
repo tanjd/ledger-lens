@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Personal portfolio analysis dashboard for Interactive Brokers (IBKR) annual activity statement CSV files. Ingests one CSV per year, persists data, and surfaces multi-year time series insights.
+Multi-broker portfolio analysis dashboard supporting Interactive Brokers (IBKR) and Moomoo. Ingests CSV statements per year per broker, persists data, and surfaces multi-year time series insights.
 
 ## Architecture
 
@@ -39,6 +39,10 @@ ledger-lens/
         │   ├── api.ts           # typed fetch wrappers
         │   ├── types.ts         # TS interfaces = API contract
         │   └── formatters.ts
+        ├── context/
+        │   ├── YearContext.tsx   # global year selector
+        │   ├── BrokerContext.tsx # global broker selector (selectedBroker + brokerList)
+        │   └── PrivacyContext.tsx
         └── hooks/
             └── useStatement.ts  # SWR hooks per endpoint
 ```
@@ -65,23 +69,44 @@ Parsing gotchas:
 
 - `POST /api/upload` — upload new CSV, triggers ingest
 - `GET /api/years` — list all ingested years
-- `GET /api/overview?year=N` — NAV, TWR, asset allocation
-- `GET /api/holdings?year=N` — open positions
-- `GET /api/trades?year=N` — trade history
+- `GET /api/brokers` — list distinct broker names in DB
+- `GET /api/broker-info` — per-broker metadata: years + latest `period_end` date
+- `GET /api/overview?year=N[&broker=ibkr]` — NAV, TWR, asset allocation (broker filter supported)
+- `GET /api/holdings?year=N` — open positions (includes `broker` field per position)
+- `GET /api/trades?year=N&type=stock|forex` — trade history (includes `broker` field per trade)
 - `GET /api/income?year=N` — dividends, withholding tax, fees
 - `GET /api/cashflows?year=N` — deposits/withdrawals
 - `GET /api/performance?year=N` — realized/unrealized P&L, MTM
-- `GET /api/timeseries/*` — multi-year aggregates
+- `GET /api/timeseries/nav[?broker=ibkr]` — multi-year NAV (broker filter supported)
+- `GET /api/timeseries/deposits[?broker=ibkr]` — multi-year deposits
+- `GET /api/timeseries/dividends[?broker=ibkr]` — multi-year dividends
+- `GET /api/timeseries/pnl[?broker=ibkr]` — multi-year P&L
+- `GET /api/timeseries/dca` — monthly deposit pattern
+- `GET /api/timeseries/commissions` — commission history
 
-## Dashboard Tabs
+## Multi-Broker Architecture
 
-1. **Overview** — NAV, TWR, asset allocation donut
-2. **Holdings** — sortable open positions table
-3. **Trades** — stock/forex dual-tab with code badges
-4. **Income** — dividends, withholding tax by symbol
-5. **Cash Flows** — deposits timeline + bar chart
-6. **P&L Analysis** — realized/unrealized, MTM, corporate actions
-7. **Trends** — multi-year portfolio growth, dividend growth, DCA pattern
+- **Broker detection**: `/api/brokers` returns distinct broker names from DB; sidebar and contexts react dynamically — no Moomoo section shown if no Moomoo data exists
+- **BrokerContext** (`frontend/src/context/BrokerContext.tsx`): provides `brokerList`, `selectedBroker`, `setSelectedBroker` globally
+- **Sidebar navigation** (multi-broker mode):
+  - Top-level combined: Overview, Holdings, Trades (sets `selectedBroker=null`)
+  - IBKR section (blue): Overview, Holdings, Trades, Income, Cash Flows, P&L Analysis, Trends
+  - Moomoo section (orange): Overview, Holdings, Trades
+  - Shows "data through {period_end}" under each broker label
+- **Single-broker mode**: flat nav unchanged (no regression for IBKR-only users)
+- **Client-side broker filtering**: Holdings and Trades pages filter by `selectedBroker` from context
+- **IBKR overview**: when `selectedBroker === "ibkr"`, all timeseries and overview API calls pass `?broker=ibkr` so numbers are IBKR-only
+- **Moomoo overview**: holdings-based snapshot (no timeseries) — KPIs from filtered positions + trades
+
+## Dashboard Pages
+
+1. **Overview** — All-time summary cards, year-by-year table, NAV vs invested chart, year snapshot; broker-aware when IBKR/Moomoo selected
+2. **Holdings** — sortable positions table + allocation pie + unrealized P&L bar; tabs (Combined/IBKR/Moomoo) when multi-broker + no broker selected
+3. **Trades** — stock/forex dual-tab, newest-first, broker badge shown when multi-broker
+4. **Income** — dividends, withholding tax by symbol (IBKR only)
+5. **Cash Flows** — deposits timeline + bar chart (IBKR only)
+6. **P&L Analysis** — realized/unrealized, MTM, corporate actions (IBKR only)
+7. **Trends** — multi-year portfolio growth, TWR by year (IBKR only)
 
 ## Dev Commands
 

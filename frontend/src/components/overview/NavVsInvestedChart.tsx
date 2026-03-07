@@ -17,9 +17,10 @@ import { fmtUsd } from "@/lib/formatters";
 interface Props {
   navData: NavTimeseriesItem[];
   depositData: DepositTimeseriesItem[];
+  hasMoomoo?: boolean;
 }
 
-export function NavVsInvestedChart({ navData, depositData }: Props) {
+export function NavVsInvestedChart({ navData, depositData, hasMoomoo }: Props) {
   const depositMap = new Map(depositData.map((d) => [d.year, d.cumulative_deposits]));
 
   const chartData = navData.map((nav) => ({
@@ -33,6 +34,11 @@ export function NavVsInvestedChart({ navData, depositData }: Props) {
       <CardHeader className="pb-1">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           Portfolio Value vs Total Invested
+          {hasMoomoo && (
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              · Moomoo est. from trades
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>

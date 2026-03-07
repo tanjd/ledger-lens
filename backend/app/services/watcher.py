@@ -64,7 +64,7 @@ class _CsvHandler(FileSystemEventHandler):
 
 def start_watcher(data_dir: str) -> BaseObserver:
     observer: BaseObserver = Observer()
-    observer.schedule(_CsvHandler(), data_dir, recursive=False)
+    observer.schedule(_CsvHandler(), data_dir, recursive=True)
     observer.start()
     logger.info("Watching %s for new CSV files", data_dir)
     return observer
@@ -74,7 +74,7 @@ def ingest_existing(data_dir: str) -> None:
     """Ingest all *.csv files already present in data_dir at startup."""
     from sqlmodel import Session
 
-    for csv_file in Path(data_dir).glob("*.csv"):
+    for csv_file in Path(data_dir).glob("**/*.csv"):
         logger.info("Startup ingest: %s", csv_file)
         try:
             with Session(engine) as session:

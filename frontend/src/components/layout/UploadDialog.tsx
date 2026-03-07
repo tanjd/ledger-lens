@@ -32,6 +32,69 @@ interface EntryRowProps {
   entry: FileEntry;
 }
 
+const BROKER_LABELS: Record<string, string> = {
+  ibkr: "IBKR",
+  moomoo: "Moomoo",
+};
+
+function PreviewDetails({ preview }: { preview: PreviewResponse }) {
+  const brokerLabel = BROKER_LABELS[preview.broker] ?? preview.broker.toUpperCase();
+  const isMoomooTrades = preview.broker === "moomoo" && (preview.years_detected?.length ?? 0) > 0;
+  const isMoomooPositions = preview.broker === "moomoo" && !isMoomooTrades;
+
+  if (isMoomooTrades) {
+    const years = preview.years_detected!;
+    const yearRange =
+      years.length === 1 ? `${years[0]}` : `${years[0]}–${years[years.length - 1]}`;
+    return (
+      <div className="pl-6 space-y-0.5 text-xs text-muted-foreground">
+        <span>
+          {brokerLabel} · Trade history · {yearRange} · {preview.trade_count} trades
+        </span>
+        {preview.already_imported && (
+          <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+            <RefreshCw className="h-3 w-3 shrink-0" />
+            Some years already imported — will replace
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  if (isMoomooPositions) {
+    return (
+      <div className="pl-6 space-y-0.5 text-xs text-muted-foreground">
+        {preview.already_imported && (
+          <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+            <RefreshCw className="h-3 w-3 shrink-0" />
+            {preview.year} already imported — will replace
+          </span>
+        )}
+        <span>
+          {brokerLabel} · Positions · {preview.year} · {preview.period_end_label} ·{" "}
+          {fmtUsd(preview.nav_current)} · {preview.position_count} positions
+        </span>
+      </div>
+    );
+  }
+
+  // IBKR
+  return (
+    <div className="pl-6 space-y-0.5 text-xs text-muted-foreground">
+      {preview.already_imported && (
+        <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+          <RefreshCw className="h-3 w-3 shrink-0" />
+          {preview.year} already imported — will replace
+        </span>
+      )}
+      <span>
+        {brokerLabel} · {preview.year} · {preview.period_end_label} ·{" "}
+        {fmtUsd(preview.nav_current)} · {fmtPct(preview.twr_pct)} TWR
+      </span>
+    </div>
+  );
+}
+
 function EntryRow({ entry }: EntryRowProps) {
   const { file, status, preview, error } = entry;
   return (
@@ -54,20 +117,7 @@ function EntryRow({ entry }: EntryRowProps) {
 
       {error && <p className="pl-6 text-xs text-destructive">{error}</p>}
 
-      {preview && status !== "error" && (
-        <div className="pl-6 space-y-0.5 text-xs text-muted-foreground">
-          {preview.already_imported && (
-            <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
-              <RefreshCw className="h-3 w-3 shrink-0" />
-              {preview.year} already imported — will replace
-            </span>
-          )}
-          <span>
-            {preview.year} · {preview.period_end_label} · {fmtUsd(preview.nav_current)} ·{" "}
-            {fmtPct(preview.twr_pct)} TWR
-          </span>
-        </div>
-      )}
+      {preview && status !== "error" && <PreviewDetails preview={preview} />}
     </div>
   );
 }
@@ -168,9 +218,9 @@ export function UploadDialog() {
         <DialogHeader>
           <DialogTitle>Import Statements</DialogTitle>
           <DialogDescription>
-            Upload one or more IBKR activity statement CSV files — annual
-            (e.g.&nbsp;U11111111_2025_2025.csv) or year-to-date
-            (e.g.&nbsp;U11111111_20260101_20260302.csv).
+            Upload IBKR activity statement CSVs (e.g.&nbsp;U11111111_2025_2025.csv) or Moomoo
+            exports — trade history (History-Margin Account…) and positions
+            (Positions-Margin Account…).
           </DialogDescription>
         </DialogHeader>
 
@@ -182,7 +232,7 @@ export function UploadDialog() {
             <Upload className="h-6 w-6 text-muted-foreground" />
             <span className="text-sm font-medium">Click to select CSV files</span>
             <span className="text-xs text-muted-foreground">
-              Multiple files supported — one per year
+              IBKR · Moomoo trade history · Moomoo positions
             </span>
             <input
               ref={inputRef}

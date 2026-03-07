@@ -32,32 +32,75 @@ router = APIRouter()
 
 
 @router.get("/timeseries/nav", response_model=list[NavTimeseriesItem])
-def timeseries_nav(session: Session = Depends(get_session)) -> list[NavTimeseriesItem]:
-    statements = session.exec(select(Statement).order_by(Statement.year)).all()  # type: ignore
+def timeseries_nav(
+    broker: str | None = None,
+    session: Session = Depends(get_session),
+) -> list[NavTimeseriesItem]:
+    query = select(Statement).order_by(Statement.year)  # type: ignore
+    if broker:
+        query = query.where(Statement.broker == broker)  # type: ignore
+    statements = session.exec(query).all()
+
+    # Aggregate NAV across brokers per year; use IBKR twr_pct where available
+    nav_by_year: dict[int, dict[str, float]] = {}
+    for s in statements:
+        if s.year not in nav_by_year:
+            nav_by_year[s.year] = {"nav_prior": 0.0, "nav_current": 0.0, "twr_pct": 0.0}
+        nav_by_year[s.year]["nav_prior"] += s.nav_prior
+        nav_by_year[s.year]["nav_current"] += s.nav_current
+        if s.broker == "ibkr":
+            nav_by_year[s.year]["twr_pct"] = s.twr_pct
+
     return [
         NavTimeseriesItem(
-            year=s.year,
-            nav_prior=s.nav_prior,
-            nav_current=s.nav_current,
-            twr_pct=s.twr_pct,
+            year=year,
+            nav_prior=vals["nav_prior"],
+            nav_current=vals["nav_current"],
+            twr_pct=vals["twr_pct"],
         )
-        for s in statements
+        for year, vals in sorted(nav_by_year.items())
     ]
 
 
 @router.get("/timeseries/deposits", response_model=list[DepositTimeseriesItem])
 def timeseries_deposits(
+    broker: str | None = None,
     session: Session = Depends(get_session),
 ) -> list[DepositTimeseriesItem]:
-    statements = session.exec(select(Statement).order_by(Statement.year)).all()  # type: ignore
+    query = select(Statement).order_by(Statement.year)  # type: ignore
+    if broker:
+        query = query.where(Statement.broker == broker)  # type: ignore
+    statements = session.exec(query).all()
+
+    deposits_by_year: dict[int, float] = defaultdict(float)
+
+    # IBKR: use actual cash deposits recorded in the statement
+    for s in statements:
+        if s.broker == "ibkr":
+            deposits_by_year[s.year] += s.deposits_withdrawals
+
+    # Moomoo has no deposit export — approximate net invested from trade proceeds.
+    # proceeds convention: negative for buys, positive for sells.
+    # -sum(proceeds) = total buy cost − total sell proceeds = net capital deployed.
+    moomoo_stmt_ids = {
+        s.id: s.year for s in statements if s.broker == "moomoo" and s.id is not None
+    }
+    if moomoo_stmt_ids:
+        for trade in session.exec(
+            select(Trade).where(Trade.statement_id.in_(list(moomoo_stmt_ids)))  # type: ignore
+        ).all():
+            year = moomoo_stmt_ids.get(trade.statement_id)
+            if year is not None:
+                deposits_by_year[year] += -trade.proceeds
+
     cumulative = 0.0
     result = []
-    for s in statements:
-        cumulative += s.deposits_withdrawals
+    for year in sorted(deposits_by_year):
+        cumulative += deposits_by_year[year]
         result.append(
             DepositTimeseriesItem(
-                year=s.year,
-                total_deposits=s.deposits_withdrawals,
+                year=year,
+                total_deposits=deposits_by_year[year],
                 cumulative_deposits=cumulative,
             )
         )
@@ -66,10 +109,15 @@ def timeseries_deposits(
 
 @router.get("/timeseries/dividends", response_model=list[DividendTimeseriesItem])
 def timeseries_dividends(
+    broker: str | None = None,
     session: Session = Depends(get_session),
 ) -> list[DividendTimeseriesItem]:
-    statements = session.exec(select(Statement).order_by(Statement.year)).all()  # type: ignore
+    query = select(Statement).order_by(Statement.year)  # type: ignore
+    if broker:
+        query = query.where(Statement.broker == broker)  # type: ignore
+    statements = session.exec(query).all()
     stmt_ids = {s.id: s.year for s in statements if s.id is not None}
+    unique_years = sorted({s.year for s in statements})
 
     gross_by_year: dict[int, float] = defaultdict(float)
     for d in session.exec(select(Dividend)).all():
@@ -93,20 +141,27 @@ def timeseries_dividends(
 
     return [
         DividendTimeseriesItem(
-            year=s.year,
-            gross=gross_by_year[s.year],
-            withholding=withholding_by_year[s.year],
-            net=gross_by_year[s.year] + withholding_by_year[s.year],
-            fees=fees_by_year[s.year],
+            year=year,
+            gross=gross_by_year[year],
+            withholding=withholding_by_year[year],
+            net=gross_by_year[year] + withholding_by_year[year],
+            fees=fees_by_year[year],
         )
-        for s in statements
+        for year in unique_years
     ]
 
 
 @router.get("/timeseries/pnl", response_model=list[PnlTimeseriesItem])
-def timeseries_pnl(session: Session = Depends(get_session)) -> list[PnlTimeseriesItem]:
-    statements = session.exec(select(Statement).order_by(Statement.year)).all()  # type: ignore
+def timeseries_pnl(
+    broker: str | None = None,
+    session: Session = Depends(get_session),
+) -> list[PnlTimeseriesItem]:
+    query = select(Statement).order_by(Statement.year)  # type: ignore
+    if broker:
+        query = query.where(Statement.broker == broker)  # type: ignore
+    statements = session.exec(query).all()
     stmt_ids = {s.id: s.year for s in statements if s.id is not None}
+    unique_years = sorted({s.year for s in statements})
 
     realized_by_year: dict[int, float] = defaultdict(float)
     unrealized_by_year: dict[int, float] = defaultdict(float)
@@ -119,11 +174,11 @@ def timeseries_pnl(session: Session = Depends(get_session)) -> list[PnlTimeserie
 
     return [
         PnlTimeseriesItem(
-            year=s.year,
-            realized=realized_by_year[s.year],
-            unrealized=unrealized_by_year[s.year],
+            year=year,
+            realized=realized_by_year[year],
+            unrealized=unrealized_by_year[year],
         )
-        for s in statements
+        for year in unique_years
     ]
 
 
@@ -192,12 +247,13 @@ def timeseries_commissions(
             elif t.asset_category == "Forex":
                 forex_by_year[year] += t.commission
 
+    unique_years = sorted({s.year for s in statements})
     return [
         CommissionTimeseriesItem(
-            year=s.year,
-            stocks=stocks_by_year[s.year],
-            forex=forex_by_year[s.year],
-            total=stocks_by_year[s.year] + forex_by_year[s.year],
+            year=year,
+            stocks=stocks_by_year[year],
+            forex=forex_by_year[year],
+            total=stocks_by_year[year] + forex_by_year[year],
         )
-        for s in statements
+        for year in unique_years
     ]

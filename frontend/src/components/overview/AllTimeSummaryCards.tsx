@@ -15,6 +15,7 @@ interface Props {
   dividendData: DividendTimeseriesItem[];
   pnlData: PnlTimeseriesItem[];
   dcaData?: DcaItem[];
+  hasMoomoo?: boolean;
 }
 
 /** Compound annual TWR: ∏(1 + twr_i / 100) − 1, expressed as % */
@@ -29,6 +30,7 @@ export function AllTimeSummaryCards({
   dividendData,
   pnlData,
   dcaData,
+  hasMoomoo,
 }: Props) {
   const latestNav = navData.at(-1)?.nav_current ?? 0;
   const cumulativeTwr = computeCumulativeTwr(navData);
@@ -67,7 +69,11 @@ export function AllTimeSummaryCards({
     {
       title: "Total Deposits",
       value: fmtUsd(totalDeposits),
-      subtitle: totalSgdDeposits > 0 ? `${fmtSgd(totalSgdDeposits)} SGD` : "Cumulative USD",
+      subtitle: hasMoomoo
+        ? "IBKR deposits + Moomoo est. from trades"
+        : totalSgdDeposits > 0
+          ? `${fmtSgd(totalSgdDeposits)} SGD`
+          : "Cumulative USD",
       valueClass: "",
     },
     {

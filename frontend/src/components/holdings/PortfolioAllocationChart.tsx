@@ -22,10 +22,16 @@ interface Props {
 }
 
 export function PortfolioAllocationChart({ positions, title = "Portfolio Allocation" }: Props) {
-  const data = [...positions]
-    .filter((p) => p.current_value > 0)
-    .sort((a, b) => b.current_value - a.current_value)
-    .map((p) => ({ symbol: p.symbol, value: p.current_value }));
+  // Merge same-symbol positions (e.g. same stock held in multiple brokers)
+  const bySymbol = new Map<string, number>();
+  for (const p of positions) {
+    if (p.current_value > 0) {
+      bySymbol.set(p.symbol, (bySymbol.get(p.symbol) ?? 0) + p.current_value);
+    }
+  }
+  const data = [...bySymbol.entries()]
+    .map(([symbol, value]) => ({ symbol, value }))
+    .sort((a, b) => b.value - a.value);
 
   const total = data.reduce((s, d) => s + d.value, 0);
 

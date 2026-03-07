@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import { YearProvider } from "@/context/YearContext";
 import { PrivacyProvider } from "@/context/PrivacyContext";
+import { BrokerProvider } from "@/context/BrokerContext";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { PrivacyWrapper } from "@/components/layout/PrivacyWrapper";
@@ -27,6 +28,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geist.variable} font-sans antialiased`}>
         <YearProvider>
+          <BrokerProvider>
           <PrivacyProvider>
             <div className="flex h-screen overflow-hidden">
               <Sidebar />
@@ -39,6 +41,7 @@ export default function RootLayout({
             </div>
             <Toaster richColors position="bottom-right" />
           </PrivacyProvider>
+          </BrokerProvider>
         </YearProvider>
       </body>
     </html>

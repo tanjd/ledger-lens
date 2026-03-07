@@ -36,8 +36,8 @@ export async function fetcher<T>(url: string): Promise<T> {
 // Per-year endpoints
 // ---------------------------------------------------------------------------
 
-export function getOverviewUrl(year: number) {
-  return `/api/overview?year=${year}`;
+export function getOverviewUrl(year: number, broker?: string) {
+  return `/api/overview?year=${year}${broker ? `&broker=${broker}` : ""}`;
 }
 
 export function getHoldingsUrl(year: number) {
@@ -65,6 +65,13 @@ export function getPerformanceUrl(year: number) {
 // ---------------------------------------------------------------------------
 
 export const VERSION_URL = "/api/version";
+export const BROKERS_URL = "/api/brokers";
+export const BROKER_INFO_URL = "/api/broker-info";
+
+export function getTimeseriesUrl(key: "nav" | "deposits" | "dividends" | "pnl", broker?: string) {
+  const base = `/api/timeseries/${key}`;
+  return broker ? `${base}?broker=${broker}` : base;
+}
 
 export const TIMESERIES_URLS = {
   nav: "/api/timeseries/nav",
