@@ -2,6 +2,47 @@
 
 <!-- version list -->
 
+## v1.4.0 (2026-03-11)
+
+### Chores
+
+- **ci**: Bump docker/build-push-action to v7 ([#4](https://github.com/tanjd/ledger-lens/pull/4),
+  [`e1cf9d3`](https://github.com/tanjd/ledger-lens/commit/e1cf9d36d27b5be5eb0311d7b74c5bea38874ddb))
+
+- **ci**: Move .python-version into backend/ ([#3](https://github.com/tanjd/ledger-lens/pull/3),
+  [`5537dc1`](https://github.com/tanjd/ledger-lens/commit/5537dc10a08dc74b161deb5e268607720906629e))
+
+- **ci**: Read node version from package.json engines field
+  ([#3](https://github.com/tanjd/ledger-lens/pull/3),
+  [`5537dc1`](https://github.com/tanjd/ledger-lens/commit/5537dc10a08dc74b161deb5e268607720906629e))
+
+- **deps**: Sync uv.lock version to 1.3.0 ([#3](https://github.com/tanjd/ledger-lens/pull/3),
+  [`5537dc1`](https://github.com/tanjd/ledger-lens/commit/5537dc10a08dc74b161deb5e268607720906629e))
+
+- **devcontainer**: Add basedpyright extraPaths for backend
+  ([#4](https://github.com/tanjd/ledger-lens/pull/4),
+  [`e1cf9d3`](https://github.com/tanjd/ledger-lens/commit/e1cf9d36d27b5be5eb0311d7b74c5bea38874ddb))
+
+### Continuous Integration
+
+- Harden release pipeline and pin runtime versions
+  ([#3](https://github.com/tanjd/ledger-lens/pull/3),
+  [`5537dc1`](https://github.com/tanjd/ledger-lens/commit/5537dc10a08dc74b161deb5e268607720906629e))
+
+- Verify Docker builds before semantic release ([#3](https://github.com/tanjd/ledger-lens/pull/3),
+  [`5537dc1`](https://github.com/tanjd/ledger-lens/commit/5537dc10a08dc74b161deb5e268607720906629e))
+
+### Features
+
+- Mobile-friendly nav drawer and privacy chart blur fix
+  ([#4](https://github.com/tanjd/ledger-lens/pull/4),
+  [`e1cf9d3`](https://github.com/tanjd/ledger-lens/commit/e1cf9d36d27b5be5eb0311d7b74c5bea38874ddb))
+
+- **frontend**: Add mobile nav drawer and fix privacy chart blur
+  ([#4](https://github.com/tanjd/ledger-lens/pull/4),
+  [`e1cf9d3`](https://github.com/tanjd/ledger-lens/commit/e1cf9d36d27b5be5eb0311d7b74c5bea38874ddb))
+
+
 ## v1.3.0 (2026-03-07)
 
 ### Features
