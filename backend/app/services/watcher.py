@@ -110,13 +110,33 @@ def start_watcher(data_dir: str) -> BaseObserver:
     return observer
 
 
+def _already_ingested(filename: str) -> bool:
+    """Return True if a successful UploadLog entry exists for this filename."""
+    from sqlmodel import Session, select
+
+    from app.models.db import UploadLog
+
+    with Session(engine) as session:
+        return (
+            session.exec(
+                select(UploadLog)
+                .where(UploadLog.filename == filename, UploadLog.status == "success")
+                .limit(1)
+            ).first()
+            is not None
+        )
+
+
 def ingest_existing(data_dir: str) -> None:
     """Ingest all *.csv files already present in data_dir at startup."""
     from sqlmodel import Session
 
     for csv_file in Path(data_dir).glob("**/*.csv"):
-        logger.info("Startup ingest: %s", csv_file)
         filename = csv_file.name
+        if _already_ingested(filename):
+            logger.debug("Startup ingest: skipping already-ingested %s", filename)
+            continue
+        logger.info("Startup ingest: %s", csv_file)
         try:
             with Session(engine) as session:
                 statement, counts = ingest_file(str(csv_file), session)
