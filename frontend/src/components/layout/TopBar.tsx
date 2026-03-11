@@ -1,8 +1,9 @@
 "use client";
 
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Menu } from "lucide-react";
 import { useYear } from "@/context/YearContext";
 import { usePrivacy } from "@/context/PrivacyContext";
+import { useMobileNav } from "@/context/MobileNavContext";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,10 +17,18 @@ import { UploadDialog } from "./UploadDialog";
 export function TopBar() {
   const { years, selectedYear, setSelectedYear } = useYear();
   const { privacyMode, togglePrivacyMode } = usePrivacy();
+  const { openNav } = useMobileNav();
 
   return (
     <header className="flex h-14 items-center justify-between border-b px-4">
-      <div />
+      <button
+        className="md:hidden rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        onClick={openNav}
+        aria-label="Open navigation"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+      <div className="hidden md:block" />
       <div className="flex items-center gap-3">
         {years.length > 0 && (
           <Select
