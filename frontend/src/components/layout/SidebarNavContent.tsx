@@ -49,15 +49,17 @@ const MOOMOO_NAV = [
   { href: "/trades", label: "Trades", icon: CreditCard },
 ];
 
-const BROKER_COLORS: Record<string, { label: string; active: string; hover: string; dot: string }> = {
+const BROKER_COLORS: Record<string, { label: string; active: string; hover: string; dot: string; text: string }> = {
   ibkr: {
     label: "text-blue-500",
+    text: "text-blue-600/75 dark:text-blue-400/70",
     active: "bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium",
     hover: "hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400",
     dot: "bg-blue-500",
   },
   moomoo: {
     label: "text-orange-500",
+    text: "text-orange-600/75 dark:text-orange-400/70",
     active: "bg-orange-500/10 text-orange-600 dark:text-orange-400 font-medium",
     hover: "hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400",
     dot: "bg-orange-500",
@@ -145,7 +147,7 @@ export function SidebarNavContent({ onNavigate }: Props) {
                           "flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors",
                           active
                             ? (colors?.active ?? "bg-sidebar-accent text-sidebar-accent-foreground font-medium")
-                            : cn("text-sidebar-foreground", colors?.hover ?? "hover:bg-sidebar-accent/60"),
+                            : cn(colors?.text ?? "text-sidebar-foreground", colors?.hover ?? "hover:bg-sidebar-accent/60"),
                         )}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
