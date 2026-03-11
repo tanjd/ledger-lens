@@ -78,8 +78,8 @@ export function PortfolioAllocationChart({ positions, title = "Portfolio Allocat
                 <span className="text-muted-foreground">{d.symbol}</span>
               </div>
               <div className="text-right">
-                <span className="font-medium">{fmtUsd(d.value)}</span>
-                <span className="ml-2 text-xs text-muted-foreground">
+                <span data-val="" className="font-medium">{fmtUsd(d.value)}</span>
+                <span data-val="" className="ml-2 text-xs text-muted-foreground">
                   {total > 0 ? ((d.value / total) * 100).toFixed(1) : "0"}%
                 </span>
               </div>

@@ -76,7 +76,8 @@
         },
         "ruff.fixAll": true,
         "python.analysis.typeCheckingMode": "off",
-        "basedpyright.analysis.useLibraryCodeForTypes": true
+        "basedpyright.analysis.useLibraryCodeForTypes": true,
+        "basedpyright.analysis.extraPaths": ["backend"]
       }
     }
   }

@@ -8,6 +8,8 @@ import { BrokerProvider } from "@/context/BrokerContext";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { PrivacyWrapper } from "@/components/layout/PrivacyWrapper";
+import { MobileSidebar } from "@/components/layout/MobileSidebar";
+import { MobileNavProvider } from "@/context/MobileNavContext";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -30,16 +32,19 @@ export default function RootLayout({
         <YearProvider>
           <BrokerProvider>
           <PrivacyProvider>
+          <MobileNavProvider>
             <div className="flex h-screen overflow-hidden">
+              <MobileSidebar />
               <Sidebar />
               <div className="flex flex-1 flex-col overflow-hidden">
                 <TopBar />
                 <PrivacyWrapper>
-                  <main className="flex-1 overflow-y-auto p-6">{children}</main>
+                  <main className="flex-1 overflow-y-auto p-3 md:p-6">{children}</main>
                 </PrivacyWrapper>
               </div>
             </div>
             <Toaster richColors position="bottom-right" />
+          </MobileNavProvider>
           </PrivacyProvider>
           </BrokerProvider>
         </YearProvider>
