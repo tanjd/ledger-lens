@@ -110,7 +110,7 @@ export function AllTimeSummaryCards({
               {c.value}
             </p>
             {c.subtitle && (
-              <p className="mt-0.5 text-xs text-muted-foreground">{c.subtitle}</p>
+              <p data-val="" className="mt-0.5 text-xs text-muted-foreground">{c.subtitle}</p>
             )}
           </CardContent>
         </Card>
