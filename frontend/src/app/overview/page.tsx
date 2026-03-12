@@ -21,11 +21,11 @@ import { KpiCard } from "@/components/overview/KpiCard";
 import { AssetAllocationChart } from "@/components/overview/AssetAllocationChart";
 import { ChangeInNavTable } from "@/components/overview/ChangeInNavTable";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fmtUsd, fmtPct, pnlColor } from "@/lib/formatters";
+import { fmtUsd, fmtSgd, fmtPct, pnlColor } from "@/lib/formatters";
 import { UploadDialog } from "@/components/layout/UploadDialog";
 
 // ── Moomoo-specific overview ─────────────────────────────────────────────────
-function MoomooOverview({ year }: { year: number | null }) {
+function MoomooOverview({ year, impliedRate }: { year: number | null; impliedRate?: number | null }) {
   const { data: holdings, isLoading: holdingsLoading } = useHoldings(year);
   const { data: trades, isLoading: tradesLoading } = useStockTrades(year);
 
@@ -55,7 +55,11 @@ function MoomooOverview({ year }: { year: number | null }) {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard title="Portfolio Value" value={fmtUsd(portfolioValue)} subtitle="Market value" />
+        <KpiCard
+          title="Portfolio Value"
+          value={fmtUsd(portfolioValue)}
+          subtitle={impliedRate ? `≈ ${fmtSgd(portfolioValue * impliedRate)} SGD · Market value` : "Market value"}
+        />
         <KpiCard
           title="Unrealized P&L"
           value={fmtUsd(unrealizedPnl)}
@@ -109,6 +113,13 @@ export default function OverviewPage() {
   const timeseriesLoading = navLoading || depositLoading || dividendLoading || pnlLoading;
   const hasData = (navData?.length ?? 0) > 0;
 
+  const totalDepositsValue = depositData?.at(-1)?.cumulative_deposits ?? 0;
+  const totalSgdDeposits = (dcaData ?? []).reduce((s, d) => s + d.sgd, 0);
+  const impliedRate =
+    totalDepositsValue > 0 && totalSgdDeposits > 0
+      ? totalSgdDeposits / totalDepositsValue
+      : null;
+
   // Empty state
   if (!hasData && !timeseriesLoading) {
     return (
@@ -124,13 +135,13 @@ export default function OverviewPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-xl font-semibold">
+          <h1 className="text-xl font-semibold text-orange-600 dark:text-orange-400">
             Moomoo Overview
             {selectedYear && <span className="ml-2 text-sm font-normal text-muted-foreground">— {selectedYear}</span>}
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">Holdings-based snapshot · change year using selector above</p>
         </div>
-        <MoomooOverview year={selectedYear} />
+        <MoomooOverview year={selectedYear} impliedRate={impliedRate} />
       </div>
     );
   }
@@ -145,6 +156,20 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-6">
+      {selectedBroker === "ibkr" && (
+        <div>
+          <h1 className="text-xl font-semibold text-blue-600 dark:text-blue-400">
+            IBKR Overview
+            {selectedYear && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">— {selectedYear}</span>
+            )}
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Change year using selector above
+          </p>
+        </div>
+      )}
+
       {/* ── All-time summary ─────────────────────────────────────── */}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
