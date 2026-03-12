@@ -2,6 +2,42 @@
 
 <!-- version list -->
 
+## v1.5.0 (2026-03-12)
+
+### Bug Fixes
+
+- **backend**: Skip already-ingested files on watcher startup
+  ([#5](https://github.com/tanjd/ledger-lens/pull/5),
+  [`066f339`](https://github.com/tanjd/ledger-lens/commit/066f3397c0a4734bb6943361aa74f7c3de4ad717))
+
+- **frontend**: Add data-val attribute to summary card subtitle
+  ([#5](https://github.com/tanjd/ledger-lens/pull/5),
+  [`066f339`](https://github.com/tanjd/ledger-lens/commit/066f3397c0a4734bb6943361aa74f7c3de4ad717))
+
+- **frontend**: Center dialog with flex wrapper ([#5](https://github.com/tanjd/ledger-lens/pull/5),
+  [`066f339`](https://github.com/tanjd/ledger-lens/commit/066f3397c0a4734bb6943361aa74f7c3de4ad717))
+
+### Chores
+
+- **backend**: Bump package version to 1.4.0 ([#5](https://github.com/tanjd/ledger-lens/pull/5),
+  [`066f339`](https://github.com/tanjd/ledger-lens/commit/066f3397c0a4734bb6943361aa74f7c3de4ad717))
+
+### Continuous Integration
+
+- Bump setup-buildx-action from v3 to v4 ([#5](https://github.com/tanjd/ledger-lens/pull/5),
+  [`066f339`](https://github.com/tanjd/ledger-lens/commit/066f3397c0a4734bb6943361aa74f7c3de4ad717))
+
+### Features
+
+- **frontend**: Add broker branding to topbar and sidebar nav
+  ([#5](https://github.com/tanjd/ledger-lens/pull/5),
+  [`066f339`](https://github.com/tanjd/ledger-lens/commit/066f3397c0a4734bb6943361aa74f7c3de4ad717))
+
+- **frontend**: Add IBKR header and SGD conversion to Moomoo overview
+  ([#5](https://github.com/tanjd/ledger-lens/pull/5),
+  [`066f339`](https://github.com/tanjd/ledger-lens/commit/066f3397c0a4734bb6943361aa74f7c3de4ad717))
+
+
 ## v1.4.0 (2026-03-11)
 
 ### Chores
